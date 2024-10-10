@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import Login from './components/Login'
+import Register from './components/Register'
 
 
 function App() {
@@ -6,9 +8,8 @@ function App() {
 
   return (
     <>
-      <p className="bg-black text-white">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Login/>
+      {/* <Register/> */}
     </>
   )
 }

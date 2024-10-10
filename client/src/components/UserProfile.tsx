@@ -1,5 +1,24 @@
+import { useEffect, useState } from "react"
+
+
+const getUser = async () => {
+	const user = await fetch("api");
+	return user;
+
+}
+
 
 export default function UserProfile() {
+
+	const [user, setUser] = useState();
+
+    useEffect(()=>{
+
+		getUser()
+
+    }, []);
+
+
     return (
       <div>             {/* user profile page, functionality depends on the role */}
 
