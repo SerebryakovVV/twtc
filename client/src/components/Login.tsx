@@ -2,7 +2,7 @@ import { useState } from "react";
 import ErrorMessage from "./ErrorMessage";
 
 
-type validationErrorType = "Password too short" | "Username too short";
+type validationErrorType = "Password too short" | "Username field is empty";
 type authErrorType = "User not found" | "Wrong password" | "Server error";
 
 
@@ -20,12 +20,13 @@ export default function Login() {
 	const handleChangePassword = (value: string): void => {
 		setPassword(/^[a-zA-Z0-9!@#$%&*]{0,20}$/.test(value) ? value : password);
 	}
+	
 
 	const validateFields = (): void => {
 		setUsernameError("");
 		setPasswordError("");
 		setAuthError("");
-		if (username.length < 1) setUsernameError("Username too short");
+		if (username.length < 1) setUsernameError("Username field is empty");
 		if (password.length < 6) setPasswordError("Password too short");
 		if (username.length < 1 || password.length < 6) return;
 		fetchLogin()
@@ -33,8 +34,19 @@ export default function Login() {
 
 	const fetchLogin = async (): Promise<void> => {
 		try {
-			console.log("heighla");
-			fetch("myapdfsfsdfsfsfefefefi.com", {});
+			console.log("start");
+			const res = await fetch("http://localhost:3000", {
+				method:"POST",
+				headers: {
+					'Content-Type': 'application/json' // Specify that you're sending JSON
+				  },
+				  body: JSON.stringify({
+					username,
+					password
+				  })
+			});
+			if (!res.ok) throw Error("Fetch error");
+			console.log("success");
 		} catch (err) {
 			console.log("its so over");
 		}
