@@ -3,7 +3,7 @@ import ErrorMessage from "./ErrorMessage";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
 
 
-type validationErrorType = "Password too short" | "Username filed is empty" | "Passwords don't match";
+type validationErrorType = "Password too short" | "Username field is empty" | "Passwords don't match";
 type RegistrationErrorType = "Username taken" | "Server error";
 
 
@@ -12,11 +12,11 @@ export default function Login() {
 	const [password, setPassword] = useState<string>("");
 	const [repeatPassword, setRepeatPassword] = useState<string>("");
 	const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
-	const [isRepeatPasswordVisible, setIsRepeatPasswordVisible] = useState<boolean>(true);
+	const [isRepeatPasswordVisible, setIsRepeatPasswordVisible] = useState<boolean>(false);
 	const [usernameError, setUsernameError] = useState<validationErrorType | "">("");
 	const [passwordError, setPasswordError] = useState<validationErrorType | "">("");
-	const [repeatPasswordError, setRepeatPasswordError] = useState<validationErrorType | "">("Passwords don't match");
-	const [registrationError, setRegistrationError] = useState<RegistrationErrorType | "">("Server error");
+	const [repeatPasswordError, setRepeatPasswordError] = useState<validationErrorType | "">("");
+	const [registrationError, setRegistrationError] = useState<RegistrationErrorType | "">("");
 
 	const handleChangeUsername = (value: string): void => {
 		setUsername(/^[a-zA-Z0-9]{0,20}$/.test(value) ? value : username);
@@ -34,7 +34,7 @@ export default function Login() {
 		setPasswordError("");
 		setRepeatPasswordError("");
 		setRegistrationError("");
-		if (username.length < 1) setUsernameError("Username filed is empty");
+		if (username.length < 1) setUsernameError("Username field is empty");
 		if (password.length < 6) {
 			setPasswordError("Password too short");
 			setPassword("");
@@ -46,18 +46,44 @@ export default function Login() {
 			setRepeatPassword("");
 		}
 		if (username.length < 1 || password.length < 6 || password !== repeatPassword) return;
-		// fetchLogin()
 		console.log("passed");
+		registerUser();
 	}
+
+
+	const registerUser = async (): Promise<void> => {
+		try {
+			console.log("start");
+			const response = await fetch("http://localhost:3000/register", {
+				method:"POST",
+				headers: {
+					'Content-Type': 'application/json' // Specify that you're sending JSON
+				},
+				body: JSON.stringify({
+					username,
+					password
+				})
+			});
+			if (!response.ok) throw Error("Fetch error");
+			console.log("passed the auth");
+			console.log(response);
+		} catch (err) {
+			console.log("its so over ", err);
+		}
+
+
+
+	}
+
+// const data = await response.json(); // Parse the response as JSON
+// console.log(data); // Use the fetched data
+
+
+
 
 
   	return (
 		<div className="w-screen h-screen bg-zinc-100 flex justify-center items-center">
-
-			
-
-			
-
 			<div className="border border-solid border-black bg-white shadow-lg w-96 h-[500px] rounded-lg flex flex-col absolute">
 					<h1 className="text-3xl text-center mt-4 mb-12">Register</h1>
 					<div className="mx-7 h-24">
@@ -95,7 +121,6 @@ export default function Login() {
 							onChange={(e)=>handleChangePassword(e.target.value, "repeat")}
 						/>
 						<span className="pt-1 pr-2" onClick={()=>setIsRepeatPasswordVisible(!isRepeatPasswordVisible)}>{isRepeatPasswordVisible ? <IoMdEyeOff/>  : <IoMdEye/>}</span>
-						{/* <span className="mr-3 text-zinc-600 text-sm" onClick={()=>setIsRepeatPasswordVisible(!isRepeatPasswordVisible)}>{isRepeatPasswordVisible ? "hide" : "show"}</span> */}
 					</div>
 						{repeatPasswordError && <ErrorMessage msg={repeatPasswordError}/>}
 					</div>

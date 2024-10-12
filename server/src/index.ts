@@ -12,6 +12,16 @@ app.post("/", (req: Request, res: Response)=>{
     res.send("resp");
 })
 
+app.post("/login", (req: Request, res: Response)=>{
+    console.log(req.body);
+    res.send("resp");
+})
+
+app.post("/register", (req: Request, res: Response)=>{
+    console.log(req.body);
+    res.send("resp");
+})
+
 /*
 
 

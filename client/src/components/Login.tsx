@@ -1,17 +1,19 @@
 import { useState } from "react";
 import ErrorMessage from "./ErrorMessage";
+import { IoMdEye, IoMdEyeOff } from "react-icons/io";
 
 
 type validationErrorType = "Password too short" | "Username field is empty";
-type authErrorType = "User not found" | "Wrong password" | "Server error";
+type AuthErrorType = "User not found" | "Wrong password" | "Server error";
 
 
 export default function Login() {
 	const [username, setUsername] = useState<string>("");
 	const [password, setPassword] = useState<string>("");
+	const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 	const [usernameError, setUsernameError] = useState<validationErrorType | "">("");
 	const [passwordError, setPasswordError] = useState<validationErrorType | "">("");
-	const [authError, setAuthError] = useState<authErrorType | "">("Server error");
+	const [authError, setAuthError] = useState<AuthErrorType | "">("Server error");
 
 	const handleChangeUsername = (value: string): void => {
 		setUsername(/^[a-zA-Z0-9]{0,20}$/.test(value) ? value : username);
@@ -20,62 +22,57 @@ export default function Login() {
 	const handleChangePassword = (value: string): void => {
 		setPassword(/^[a-zA-Z0-9!@#$%&*]{0,20}$/.test(value) ? value : password);
 	}
-	
 
 	const validateFields = (): void => {
 		setUsernameError("");
 		setPasswordError("");
 		setAuthError("");
 		if (username.length < 1) setUsernameError("Username field is empty");
-		if (password.length < 6) setPasswordError("Password too short");
+		if (password.length < 6) {
+			setPasswordError("Password too short");
+			setPassword("");
+		}
+		
 		if (username.length < 1 || password.length < 6) return;
-		fetchLogin()
+		
+		
+		
+		console.log("passed the validation");
+		fetchLogin();
 	}
 
+
+		
 	const fetchLogin = async (): Promise<void> => {
 		try {
 			console.log("start");
-			const res = await fetch("http://localhost:3000", {
+			const response = await fetch("http://localhost:3000/login", {
 				method:"POST",
 				headers: {
 					'Content-Type': 'application/json' // Specify that you're sending JSON
-				  },
-				  body: JSON.stringify({
+				},
+				body: JSON.stringify({
 					username,
 					password
-				  })
+				})
 			});
-			if (!res.ok) throw Error("Fetch error");
-			console.log("success");
+			if (!response.ok) throw Error("Fetch error");
+			console.log("passed the auth");
+			console.log(response);
 		} catch (err) {
-			console.log("its so over");
+			console.log("its so over ", err);
 		}
 
 
-		{/*
-			
-		async function fetchData() {
-  try {
-    const response = await fetch('https://api.example.com/data');
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
 
-    const data = await response.json(); // Parse the response as JSON
-    console.log(data); // Use the fetched data
+	}
 
-  } catch (error) {
-    console.error('There was a problem with the fetch operation:', error);
-  }
-}
-
-fetchData();	
-			
-		*/}
+// const data = await response.json(); // Parse the response as JSON
+// console.log(data); // Use the fetched data
 
 
-	} 
+
+
 
   	return (
 		<div className="w-screen h-screen bg-zinc-100 flex justify-center items-center">
@@ -92,17 +89,20 @@ fetchData();
 						{usernameError && <ErrorMessage msg={usernameError}/>}
 					</div>
 					<div className="mx-7 h-24">
-						<input 
-							className="w-full mb-2 focus:outline-none border-b border-black"
-							type="password" 
-							placeholder="Password" 
-							value={password}
-							onChange={(e)=>handleChangePassword(e.target.value)}
-						/>
+						<div className="w-full mb-2 focus:outline-none border-b border-black flex justify-between">
+							<input 
+								className="focus:outline-none w-full"
+								type={isPasswordVisible ? "text" : "password"} 
+								placeholder="Password" 
+								value={password}
+								onChange={(e)=>handleChangePassword(e.target.value)}
+							/>
+							<span className="pt-1 pr-2" onClick={()=>setIsPasswordVisible(!isPasswordVisible)}>{isPasswordVisible ? <IoMdEyeOff/>  : <IoMdEye/>}</span>
+						</div>
 						{passwordError && <ErrorMessage msg={passwordError}/>}
 					</div>
 					<div className="mx-7 h-24">
-						{authError && <ErrorMessage msg={"hello"}/>}
+						{authError && <ErrorMessage msg={authError}/>}
 					</div>
 					<button 
 						className="mx-7 relative bottom-10 mt-auto rounded border border-solid border-black bg-black text-white hover:bg-white hover:text-black py-3"
