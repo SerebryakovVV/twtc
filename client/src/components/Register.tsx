@@ -66,7 +66,8 @@ export default function Login() {
 			});
 			if (!response.ok) throw Error("Fetch error");
 			console.log("passed the auth");
-			console.log(response);
+			const responseJSON = await response.json();
+			console.log(responseJSON);
 		} catch (err) {
 			console.log("its so over ", err);
 		}

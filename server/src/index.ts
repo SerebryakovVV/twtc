@@ -1,26 +1,111 @@
 import express, {Request, Response} from "express"
-const cors = require('cors')
+import bcrypt from 'bcrypt'
+
+import * as jwt from 'jsonwebtoken';
+import cors from 'cors';
+import pg from 'pg';
+
+const pool = new pg.Pool({
+    user: "my_user",
+    database: "twtc",
+    password: "root",
+    port: 5432,
+    host: "localhost"
+});
+
+/*
+user?: string | undefined;
+    database?: string | undefined;
+    password?: string | (() => string | Promise<string>) | undefined;
+    port?: number | undefined;
+    host?: string | undefined;
+
+*/
+
+// pool.connect
+
+// const cors = require('cors')
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 
+
+
+
+
+
+
+
+// hashing and jwt stuff
+/*
+
+const salt = await bcrypt.genSalt(10);
+const hashedPassword = await bcrypt.hash(password, salt);
+
+*/
+
+
+
+
+
+
+
+
+
+
+
 // added scripts to package.json
+// https://chatgpt.com/c/670be919-3ea4-8008-9139-ae1cbfef6076#4-set-up-the-server-and-database-connection
 
 app.post("/", (req: Request, res: Response)=>{
     console.log(req.body);
     res.send("resp");
 })
 
-app.post("/login", (req: Request, res: Response)=>{
-    console.log(req.body);
-    res.send("resp");
+app.post("/login", async (req: Request, res: Response)=>{
+
+    // const jwtResult: string = jwt.sign(req.body, "hellothisismysecrret");
+    // console.log(req.body);
+    // res.send({"token":jwtResult});
+    try {
+        const client: pg.PoolClient = await pool.connect();
+        const queryResult = await client.query("select * from users");
+        console.log(queryResult);
+        res.send({"rows":queryResult.rows});
+    } catch(err) {
+        console.log("db error ", err);
+    }
+
+
 })
 
-app.post("/register", (req: Request, res: Response)=>{
-    console.log(req.body);
-    res.send("resp");
+app.post("/register", async (req: Request, res: Response)=>{
+    
+    try {
+        const salt: string = await bcrypt.genSalt(10);
+        const hashedPassword: string = await bcrypt.hash(req.body.password, salt);
+        // const hashedUsername: string = await bcrypt.hash(req.body.username, salt);
+        const comparisonResult: boolean = await bcrypt.compare("letmein", hashedPassword);
+        if (comparisonResult) {
+            res.send({res:"same"});
+        } else {
+            // res.send({res:hashedPassword});
+            res.send({res:"notsame"});
+        }
+    } catch (err) {
+        console.log("salt error ", err);
+        res.send({
+            err:"errorrrr"
+        });
+    }
+    
+    // console.log(req.body);
+    // res.send("resp");
 })
+
+
+
 
 /*
 
