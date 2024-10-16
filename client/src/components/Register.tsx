@@ -54,17 +54,46 @@ export default function Login() {
 	const registerUser = async (): Promise<void> => {
 		try {
 			console.log("start");
+			
+			
 			const response = await fetch("http://localhost:3000/register", {
 				method:"POST",
 				headers: {
-					'Content-Type': 'application/json' // Specify that you're sending JSON
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					username,
 					password
 				})
 			});
-			if (!response.ok) throw Error("Fetch error");
+
+
+
+			// DELETE THIS BLOCK, UNCOMMENT THE BLOCK ABOVE
+
+			// const response = await fetch("http://localhost:3000/register", {
+			// 	method:"POST",
+			// 	headers: {
+			// 		'Content-Type': 'application/json'
+			// 	},
+			// 	body: JSON.stringify({
+			// 		username:"hello!",
+			// 		password:"djkfldf"
+			// 	})
+			// });
+
+			//
+
+
+
+			if (!response.ok) {                 // response ok is true for 200-299 codes, implement all the error handling here
+				
+				const responseJSON = await response.json();  // only works with validation errors
+				console.log("validation error");
+				console.log(responseJSON);
+				throw Error("Fetch error");  
+			}
+			
 			console.log("passed the auth");
 			const responseJSON = await response.json();
 			console.log(responseJSON);

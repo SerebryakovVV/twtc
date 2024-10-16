@@ -6,8 +6,13 @@ import Login from './components/Login.tsx'
 import Register from './components/Register.tsx'
 
 import {createBrowserRouter, RouterProvider} from 'react-router-dom'
+import AuthProvider from './components/AuthProvider.tsx'
 
 const router = createBrowserRouter([
+	{
+		path: "/",
+		element: <div>idi nahui</div>
+	},
 	{
 		path: "login",
 		element: <Login/>
@@ -20,7 +25,13 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-	<RouterProvider router={router} />
+	
+	<AuthProvider>
+		<RouterProvider router={router} />
+	</AuthProvider>
+	
+
+
 	{/* <App /> */}
 	{/* <div></div> */}
 
