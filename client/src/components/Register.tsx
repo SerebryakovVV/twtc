@@ -88,8 +88,8 @@ export default function Login() {
 
 			if (!response.ok) {                 // response ok is true for 200-299 codes, implement all the error handling here
 				
-				const responseJSON = await response.json();  // only works with validation errors
-				console.log("validation error");
+				const responseJSON = await response.text();  // only works with validation errors
+				// console.log("validation error");
 				console.log(responseJSON);
 				throw Error("Fetch error");  
 			}
