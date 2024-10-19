@@ -32,63 +32,60 @@ app.post("/", (req: Request, res: Response)=>{
 
 
 
-
+// https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
 app.post(
-    "/login", 
-    
-    // VALIDATION HERE
-    
+    "/login",
+    body("username")
+        .matches(/^[a-zA-Z0-9]{1,20}$/)
+        .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
+        .isString()
+        .withMessage("Username should be a string"),
+    body("password")
+        .matches(/^[a-zA-Z0-9!@#$%&*]{6,20}$/)
+        .withMessage("Password must only contain letters, numbers, special characters: !@#$%&*, and be 6-20 characters long")
+        .isString()
+        .withMessage("Password should be a string"),
     async (req: Request, res: Response)=>{
-
-        const client = await pool.connect();
-        let queryResult;
-        try {
-            queryResult = await client.query("SELECT * FROM users WHERE name = $1", [req.body.username]);
-            console.log(queryResult);
-            // res.status(200).send({res:queryResult});
-        } catch(e) {
-            console.log(e);
-            res.status(500).send("DB error");
+        const valRes = validationResult(req);
+        if (!valRes.isEmpty()) {
+            res.status(422).send("Validation error!");
             return;
+        }
+        const {username, password} = req.body; 
+        const client = await pool.connect();
+        let userRequesResult;
+        try {
+            userRequesResult = await client.query("SELECT * FROM users WHERE name = $1", [username]);
+            if (userRequesResult.rows.length === 0) {
+                res.status(404).send("User not found!");
+                return;
+            }
+            try {
+                const comparisonResult = await bcrypt.compare(password, userRequesResult.rows[0].password_hash);
+                if (!comparisonResult) {
+                    res.status(401).send("Wrong password!");
+                    return;
+                }
+            } catch(err) {
+                console.log(err);
+                res.status(500).send("Hash comparison error!");
+                return;
+            }
+            res.status(200).send({
+                username: userRequesResult.rows[0].name,
+                id: userRequesResult.rows[0].id
+            });
+        } catch(err) {
+            console.log(err);
+            res.send("DB error!");
         } finally {
             client.release();
         }
-
-
-        const comparisonResult = await bcrypt.compare(req.body.password, queryResult.rows[0].password_hash);
-        console.log(comparisonResult);
-       
-        res.status(200).send("All good");
-
-    // try {
-
-        // const client: pg.PoolClient = await pool.connect();
-        // const queryResult = await client.query("select * from users");
-        // console.log(queryResult);
-        // res.send({"rows":queryResult.rows});
-    
-        // get login and password from request body
-        // query db for user with given username
-        // if not found send not found
-        // if found compare passwords
-        // if same send jwt
-    
-
-        ////////////
-
-        // const comparisonResult: boolean = await bcrypt.compare("letmein", hashedPassword);
-        //     if (comparisonResult) {
-        //         res.send({res:"same"});
-        //     } else {
-        //         // res.send({res:hashedPassword});
-        //         res.send({res:"notsame"});
-        //     }
-
-        ///////////
-
-
-        // JWT STUFF HERE
-
+    ///////////////
+   //           //
+  //    JWT    //
+ //           //
+///////////////
 })
 
 
@@ -107,47 +104,56 @@ app.post(
     "/register", 
     body("username")
         .matches(/^[a-zA-Z0-9]{1,20}$/)
-        .withMessage("Username must only contain letters and numbers and be 1-20 characters long"),
+        .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
+        .isString()
+        .withMessage("Username should be a string"),
     body("password")
         .matches(/^[a-zA-Z0-9!@#$%&*]{6,20}$/)
-        .withMessage("Password must only contain letters, numbers, special characters: !@#$%&*, and be 6-20 characters long"),
+        .withMessage("Password must only contain letters, numbers, special characters: !@#$%&*, and be 6-20 characters long")
+        .isString()
+        .withMessage("Password should be a string"),
     async (req: Request, res: Response)=>{
         const valRes = validationResult(req);
         if (!valRes.isEmpty()) {
-            res.status(403).send({result:valRes});
+            res.status(422).send("Validation error!");
             return;
         }
-        /*
-        
-        CHECK IF THE USER ALREADY EXISTS
-        
-        */
-        let hashedPassword: string;
-        try {
-            const salt: string = await bcrypt.genSalt(10);
-            hashedPassword = await bcrypt.hash(req.body.password, salt);
-        } catch (err) {
-            res.status(500).send("Hashing error");
-            return;
-        }
+        const {username, password} = req.body; 
         const client = await pool.connect();
-        try {   
-            const queryResult = await client.query("INSERT INTO users (name, password_hash) values ($1, $2)", [req.body.username, hashedPassword]);
+        try {
+            try {
+                const userExists = await client.query("SELECT 1 FROM users WHERE name = $1", [username]);
+                if (userExists.rows.length !== 0) {
+                    res.status(409).send("User already exists!");
+                    return;
+                }
+            } catch (err) {
+                console.log(err);
+                res.status(500).send("DB error, while checking existence!");
+                return;
+            }
+            let hashedPassword: string;
+            try {
+                const salt: string = await bcrypt.genSalt(10);
+                hashedPassword = await bcrypt.hash(password, salt);
+            } catch (err) {
+                console.log(err);
+                res.status(500).send("Hashing error");
+                return;
+            }
+            const queryResult = await client.query("INSERT INTO users (name, password_hash) values ($1, $2)", [username, hashedPassword]);
             res.status(200).send(queryResult);
-
-        } catch(e) {
-            console.log(e);
-            res.status(500).send("DB error");
+        } catch(err) {
+            console.log(err);
+            res.status(500).send("DB error, while inserting");
         } finally {
             client.release();
         }
-        // validate the data
-        // if bad send response
-        // if ok check if user exists in db
-        // if yes send response
-        // if no generate salt, incrypt the password, store the data
-        // if error send response
-        // if ok send user data and go through login stuff automatically and give jwt
+     /////////////////////////////////////////////////////////////////////////////////////
+    //                                                                                 //
+   //   if ok send user data and go through login stuff automatically and give jwt    //
+  //                                                                                 //
+ /////////////////////////////////////////////////////////////////////////////////////
 })
 
 
