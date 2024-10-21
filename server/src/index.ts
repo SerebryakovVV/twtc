@@ -1,6 +1,6 @@
-import express, {Request, Response} from "express"
+import express, {Request, Response, NextFunction} from "express"
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import cors from 'cors';
 import pg from 'pg';
 import { body, validationResult } from 'express-validator'
@@ -19,16 +19,73 @@ const pool = new pg.Pool({
 // pool.connect
 
 
+// https://chatgpt.com/c/671401fb-7b5c-8008-b457-3db97d2ac1e6
+// declare global {
+//     namespace Express {
+//         interface Request {
+//             user?: string | JwtPayload; 
+//         }
+//     }
+// }
+
+/*
+
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    // const token = req.auth
+
+    const token = req.header("Authorization")?.replace('Bearer ', '');
+
+    if (!token) {
+        res.status(400).send("no token");
+        return;
+    }
+
+    // if (req.body.name === "valya") {
+    //     res.send("middleware triggered");
+    //     return;
+    // }
+
+    jwt.verify(token, "qwertyuiopasdfghjklzxcvbnm123456", (err, decoded) => {
+        if (err) {
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).json({ message: 'Token has expired. Please log in again.' });
+            }
+            return res.status(401).json({ message: 'Token is not valid.' });
+        }
+
+        // Attach the user to req object on a custom property (req.tokenUser)
+        // (req as any).tokenUser = decoded;
+        res.send({resp:decoded});
+        return;
+        next();
+    });
+
+    // req.user = "dd";
+    // next();
+
+
+}
+
+*/
+
+
+
+// CSRF 
+// https://chatgpt.com/c/6716b463-6b7c-8008-adf1-91ed234e43f8
 
 
 
 
+
+// app.post("/", authMiddleware, (req: Request, res: Response)=>{
+//     console.log(req.body);
+//     res.send("resp");
+// })
 
 app.post("/", (req: Request, res: Response)=>{
     console.log(req.body);
     res.send("resp");
 })
-
 
 
 
@@ -60,6 +117,10 @@ app.post(
                 res.status(404).send("User not found!");
                 return;
             }
+
+
+
+
             try {
                 const comparisonResult = await bcrypt.compare(password, userRequesResult.rows[0].password_hash);
                 if (!comparisonResult) {
@@ -71,10 +132,33 @@ app.post(
                 res.status(500).send("Hash comparison error!");
                 return;
             }
+
+
+
+             // https://chatgpt.com/c/671401fb-7b5c-8008-b457-3db97d2ac1e6
+             // https://dvmhn07.medium.com/jwt-authentication-in-node-js-a-practical-guide-c8ab1b432a49
+            const token = jwt.sign(
+                {
+                    username: userRequesResult.rows[0].name,
+                    id: userRequesResult.rows[0].id
+                }, 
+                "secret",
+// JWT SECRET
+                {
+                    expiresIn:"15m"
+                }
+            );
+
+
+
+
+
             res.status(200).send({
-                username: userRequesResult.rows[0].name,
-                id: userRequesResult.rows[0].id
+                token
             });
+
+
+
         } catch(err) {
             console.log(err);
             res.send("DB error!");
