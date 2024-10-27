@@ -1,6 +1,9 @@
 import { useState } from "react";
 import ErrorMessage from "./ErrorMessage";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
+import {set} from '../features/auth/authSlice'
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 
 type validationErrorType = "Password too short" | "Username field is empty";
@@ -14,6 +17,8 @@ export default function Login() {
 	const [usernameError, setUsernameError] = useState<validationErrorType | "">("");
 	const [passwordError, setPasswordError] = useState<validationErrorType | "">("");
 	const [authError, setAuthError] = useState<AuthErrorType | "">("Server error");
+	const dispatch = useDispatch();
+	const navigate = useNavigate();
 
 	const handleChangeUsername = (value: string): void => {
 		setUsername(/^[a-zA-Z0-9]{0,20}$/.test(value) ? value : username);
@@ -60,6 +65,13 @@ export default function Login() {
 			const resultJSON = await response.json();
 			console.log("passed the auth");
 			console.log(resultJSON);
+
+	
+			///////////////////////////////////
+			dispatch(set(resultJSON.username));
+			navigate("/");
+			///////////////////////////////////
+	
 		} catch (err) {
 			console.log("its so over ", err);
 		}

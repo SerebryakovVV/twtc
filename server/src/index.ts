@@ -154,14 +154,16 @@ app.post(
 
 
             res.status(200).send({
-                token
+                token,
+                username,
+                id: userRequesResult.rows[0].id
             });
 
 
 
         } catch(err) {
             console.log(err);
-            res.send("DB error!");
+            res.status(500).send("DB error!");
         } finally {
             client.release();
         }

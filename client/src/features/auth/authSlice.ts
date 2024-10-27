@@ -1,4 +1,44 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+
+
+type initialStateType = {
+    jwt: string | null,
+    id: string | null,
+    username: string | null
+}
+
+const initialState: initialStateType = {
+    jwt: null,
+    id: null,
+    username: null
+}
+
+export const authSlice = createSlice({
+    name:"auth",
+    initialState,
+    reducers:{
+        set: (state, action: PayloadAction<string>)=>{
+            state.username = action.payload;
+        },
+        clear: (state) => {
+            state.username = null;
+        }
+    }
+}) 
+
+
+
+
+
+export const { set, clear } = authSlice.actions;
+export default authSlice.reducer;
+
+
+
+{/*
+    
+    import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 export interface CounterState {
@@ -33,3 +73,62 @@ export const counterSlice = createSlice({
 export const { increment, decrement, incrementByAmount } = counterSlice.actions
 
 export default counterSlice.reducer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+
+
+type initialStateType = {
+    name:string | null,
+    id:string | null
+}
+
+const initialState: initialStateType = {
+    name:null,
+    id:null
+}
+
+export const userSlice = createSlice({
+    name: "user",
+    initialState,
+    reducers: {
+        setName: (state, action: PayloadAction<string>) => {
+            state.name = action.payload
+        },
+        setId: (state, action: PayloadAction<string>) => {
+            state.id = action.payload
+        }
+    }
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    */}
