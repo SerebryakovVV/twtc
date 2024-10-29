@@ -20,12 +20,24 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom'
 import AuthProvider from './components/AuthProvider.tsx'
 import Login from './components/Login.tsx'
 import Register from './components/Register.tsx'
-
+import Profile from './components/Profile.tsx'
+import { Link } from 'react-router-dom'
 
 const router = createBrowserRouter([
 	{
+		path:"profile",
+		// element: <AuthProvider><Profile/></AuthProvider>
+		element: <Profile/>
+	},
+	{
 		path: "/",
-		element: <AuthProvider><div>protected div</div></AuthProvider>
+		element: 
+			<AuthProvider>
+				<div>protected div</div>
+				<Link to="profile">
+					go to profile
+				</Link>
+			</AuthProvider>
 	},
 	{
 		path: "login",
