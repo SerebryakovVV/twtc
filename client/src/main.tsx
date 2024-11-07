@@ -9,7 +9,7 @@
 // https://reactrouter.com/en/main/start/examples
 // https://github.com/remix-run/react-router/tree/dev/examples 
 // https://chatgpt.com/c/6717f070-9a5c-8008-b136-88850e31dcf0
-
+// https://chatgpt.com/c/672283a1-acac-8008-aa66-11a962bf3c6f
 
 import './index.css'
 import { StrictMode } from 'react'
@@ -20,24 +20,26 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom'
 import AuthProvider from './components/AuthProvider.tsx'
 import Login from './components/Login.tsx'
 import Register from './components/Register.tsx'
+import Layout from './components/Layout.tsx'
+import Post from './components/Post.tsx'
+import Feed from './components/Feed.tsx'
 import Profile from './components/Profile.tsx'
-import { Link } from 'react-router-dom'
+import Subscriptions from './components/Subscriptions.tsx'
+import Likes from './components/Likes.tsx'
+
 
 const router = createBrowserRouter([
 	{
-		path:"profile",
-		// element: <AuthProvider><Profile/></AuthProvider>
-		element: <Profile/>
-	},
-	{
-		path: "/",
-		element: 
-			<AuthProvider>
-				<div>protected div</div>
-				<Link to="profile">
-					go to profile
-				</Link>
-			</AuthProvider>
+		path:"/",
+		// element: <AuthProvider><Layout/></AuthProvider>,
+		element: <Layout/>,
+		children: [
+			{index: true, element:<Feed/>},
+			{path: "profile", element:<Profile/>},
+			{path: "post/:id", element:<Post/>},
+			{path: "subscriptions", element:<Subscriptions/>},
+			{path: "likes", element:<Likes/>}
+		]
 	},
 	{
 		path: "login",
