@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom"
+import { useSelector } from "react-redux"
+import { RootState } from "../store"
+
 
 export default function MenuSidebar() {
+    const username = useSelector((state: RootState) => state.auth.username);
     return (
         <div className="w-[150px] bg-zinc-100 border-r border-zinc-300">
             <div className="text-3xl mb-8">TWTX</div>
             <ul className="mr-2">
                 <li><Link to="/"><MenuSidebarElement text="Feed"/></Link></li>
-                <li><Link to="profile"><MenuSidebarElement text="Profile"/></Link></li>
+                <li><Link to={`profile/${username}`}><MenuSidebarElement text="Profile"/></Link></li>
                 <li><Link to="likes"><MenuSidebarElement text="Likes"/></Link></li>
                 <li><Link to="subscriptions"><MenuSidebarElement text="Subscriptions"/></Link></li>
             </ul>

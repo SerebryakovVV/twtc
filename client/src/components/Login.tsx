@@ -1,9 +1,10 @@
 import { useState } from "react";
 import ErrorMessage from "./ErrorMessage";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
-import {set} from '../features/auth/authSlice'
+import {set, setID} from '../features/auth/authSlice'
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { Link } from "react-router-dom";
 
 
 type validationErrorType = "Password too short" | "Username field is empty";
@@ -16,7 +17,7 @@ export default function Login() {
 	const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 	const [usernameError, setUsernameError] = useState<validationErrorType | "">("");
 	const [passwordError, setPasswordError] = useState<validationErrorType | "">("");
-	const [authError, setAuthError] = useState<AuthErrorType | "">("Server error");
+	const [authError, setAuthError] = useState<AuthErrorType | "">("");
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
 
@@ -69,6 +70,7 @@ export default function Login() {
 	
 			///////////////////////////////////
 			dispatch(set(resultJSON.username));
+			dispatch(setID(resultJSON.id));
 			navigate("/");
 			///////////////////////////////////
 	
@@ -118,11 +120,12 @@ export default function Login() {
 						{authError && <ErrorMessage msg={authError}/>}
 					</div>
 					<button 
-						className="mx-7 relative bottom-10 mt-auto rounded border border-solid border-black bg-black text-white hover:bg-white hover:text-black py-3"
+						className="mx-7 relative bottom-6 mt-auto rounded border border-solid border-black bg-black text-white hover:bg-white hover:text-black py-3"
 						onClick={validateFields}
 					>
 						Submit
 					</button>
+					<Link to="/register" className="underline text-center mb-2">register</Link>
 			</div>
 		</div>
 	)

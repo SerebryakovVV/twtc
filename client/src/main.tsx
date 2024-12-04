@@ -21,7 +21,7 @@ import AuthProvider from './components/AuthProvider.tsx'
 import Login from './components/Login.tsx'
 import Register from './components/Register.tsx'
 import Layout from './components/Layout.tsx'
-import Post from './components/Post.tsx'
+import Post from './components/FeedPost.tsx'
 import Feed from './components/Feed.tsx'
 import Profile from './components/Profile.tsx'
 import Subscriptions from './components/Subscriptions.tsx'
@@ -35,8 +35,8 @@ const router = createBrowserRouter([
 		element: <Layout/>,
 		children: [
 			{index: true, element:<Feed/>},
-			{path: "profile", element:<Profile/>},
-			{path: "post/:id", element:<Post/>},
+			{path: "profile/:queryUsername", element:<Profile/>},
+			// {path: "post/:id", element:<Post/>},
 			{path: "subscriptions", element:<Subscriptions/>},
 			{path: "likes", element:<Likes/>}
 		]

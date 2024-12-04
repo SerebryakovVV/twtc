@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ErrorMessage from "./ErrorMessage";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
+import { Link } from "react-router-dom";
 
 
 type validationErrorType = "Password too short" | "Username field is empty" | "Passwords don't match";
@@ -136,8 +137,6 @@ export default function Login() {
 								onChange={(e)=>handleChangePassword(e.target.value, "origin")}
 							/>
 							<span className="pt-1 pr-2" onClick={()=>setIsPasswordVisible(!isPasswordVisible)}>{isPasswordVisible ? <IoMdEyeOff/>  : <IoMdEye/>}</span>
-							
-							
 						</div>
 						{passwordError && <ErrorMessage msg={passwordError}/>}
 					</div>
@@ -158,11 +157,12 @@ export default function Login() {
 						{registrationError && <ErrorMessage msg={registrationError}/>}
 					</div>
 					<button 
-						className="mx-7 relative bottom-10 mt-auto rounded border border-solid border-black bg-black text-white hover:bg-white hover:text-black py-3"
+						className="mx-7 relative bottom-6 mt-auto rounded border border-solid border-black bg-black text-white hover:bg-white hover:text-black py-3"
 						onClick={validateFields}
 					>
 						Submit
 					</button>
+					<Link to="/login" className="underline text-center mb-2">login</Link>
 			</div>
 		</div>
 	)
