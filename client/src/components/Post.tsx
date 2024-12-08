@@ -5,11 +5,37 @@ import { FaReply } from "react-icons/fa";
 import { IoCloseSharp } from "react-icons/io5";
 
 // the query for getting all the comment as array of arrays https://chatgpt.com/c/6750a6e8-dda4-8008-941c-576f561606fc
+// also cte, recursive queries and postgres functions
 
 export default function Post({username, text, timestamp, likesNum, commentsNum}:{username: string, text: string, timestamp: string, likesNum: number, commentsNum: number}) {
     
     const [isLiked, setIsLiked] = useState<boolean>(true);
+
+    const handleLike = async () => {
+        
+        try {
+            const response = await fetch("http://localhost:3000/like", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    // will need to pass post id through props and get user id from redux
+                    toLike: isLiked ? false : true
+                })
+            });
+            const responseJson = await response.json();
+            if (responseJson.success) {
+                setIsLiked(isLiked ? false : true);
+            } 
+        } catch(e) {
+            console.log(e);
+        }
+    }
+
     
+
+
     return(
         
 
