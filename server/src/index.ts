@@ -22,9 +22,22 @@ const pool = new pg.Pool({
     host: "localhost"
 });
 
+// The integer array representation is caused by Express serializing the Buffer for JSON.
+// app.get("/img", async (req, res) => {
+// 	try {
+// 		const qRes = await pool.query("select image, id from post_image where id = 1");
+// 		console.log(qRes);
+// 		res.send(qRes.rows)
+// 	} catch(e) {
+// 		console.log(e);
+// 		res.status(500).send("failed");
+// 	}
+// })
+
+
+
 // ADD JWT
-// ADD LOGIN AFTER REGISTRATION AND REDIRECT
-    
+// ADD LOGIN AFTER REGISTRATION AND REDIRECT 
 // https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
 app.post(
     "/login",
@@ -57,6 +70,7 @@ app.post(
                 const comparisonResult = await bcrypt.compare(password, userRequesResult.rows[0].password_hash);
                 if (!comparisonResult) {
                     res.status(401).send("Wrong password!");
+					console.log("wrong password");
                     return;
                 }
             } catch(err) {
@@ -215,8 +229,8 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 // optimise into one query
 // https://chatgpt.com/c/67422390-9e14-8008-a106-49e6cef8289d
 app.get("/posts", async (req, res)=>{
-  	const username = req.query.username;
-  	console.log(username);
+  	const id = req.query.id;
+  	console.log(id);
   	const client = await pool.connect();
   	try {
 
@@ -246,7 +260,39 @@ app.get("/posts", async (req, res)=>{
 		// `);
 
 		// ADD ENCODING!!!!!!!!!!!
-		const queryResult = await client.query(`
+		// const queryResult = await client.query(`
+		// 	SELECT 
+		// 	u.id AS user_id,
+		// 	p.id AS post_id,
+		// 	p.content,
+		// 	p.created_at,
+		// 	COALESCE(
+		// 		JSON_AGG(
+		// 		JSON_BUILD_OBJECT(
+		// 			'image_id', pi.id,
+		// 			'image', encode(pi.image, 'base64'),
+		// 			'position', pi.position
+		// 		)
+		// 		ORDER BY pi.position ASC
+		// 		) FILTER (WHERE pi.id IS NOT NULL),
+		// 		'[]'
+		// 	) AS images
+		// 	FROM users u
+		// 	LEFT JOIN posts p ON u.id = p.author_id
+		// 	LEFT JOIN post_image pi ON p.id = pi.post_id
+		// 	WHERE u.name = $1
+		// 	GROUP BY u.id, p.id, p.content, p.created_at
+		// 	ORDER BY p.created_at DESC;
+		// `, [username]);
+
+
+
+    // without encoding
+	// need to change from username to id
+	// and probably need to rewrite it so it wouldn't send id
+	// probably wrong and actually need to send just one query which will check for existense, if false return empty array, if true continue the query and return all the other stuff
+	// now it returns user id with each post in array, need to rewrite 
+    const queryResult = await client.query(`
 			SELECT 
 			u.id AS user_id,
 			p.id AS post_id,
@@ -256,7 +302,7 @@ app.get("/posts", async (req, res)=>{
 				JSON_AGG(
 				JSON_BUILD_OBJECT(
 					'image_id', pi.id,
-					'image', encode(pi.image, 'base64'),
+					'image', pi.image,
 					'position', pi.position
 				)
 				ORDER BY pi.position ASC
@@ -266,10 +312,54 @@ app.get("/posts", async (req, res)=>{
 			FROM users u
 			LEFT JOIN posts p ON u.id = p.author_id
 			LEFT JOIN post_image pi ON p.id = pi.post_id
-			WHERE u.name = $1
+			WHERE u.id = $1
 			GROUP BY u.id, p.id, p.content, p.created_at
 			ORDER BY p.created_at DESC;
-		`, [username]);
+		`, [id]);
+
+
+
+	// what the fuck even is this shit
+	// https://chatgpt.com/c/6759e231-9094-8008-bca5-0d9d2a9bad7b
+// 	SELECT 
+//     u.id AS user_id,
+//     COALESCE(
+//         JSON_AGG(
+//             JSON_BUILD_OBJECT(
+//                 'post_id', p.id,
+//                 'content', p.content,
+//                 'created_at', p.created_at,
+//                 'images', COALESCE(
+//                     JSON_AGG(
+//                         CASE 
+//                             WHEN pi.id IS NOT NULL THEN 
+//                                 JSON_BUILD_OBJECT(
+//                                     'image_id', pi.id,
+//                                     'image', pi.image,
+//                                     'position', pi.position
+//                                 )
+//                             ELSE NULL
+//                         END
+//                         ORDER BY pi.position ASC
+//                     ) FILTER (WHERE pi.id IS NOT NULL),
+//                     '[]'
+//                 )
+//             )
+//         ORDER BY p.created_at DESC
+//         ) FILTER (WHERE p.id IS NOT NULL),
+//         '[]'
+//     ) AS posts
+// FROM users u
+// LEFT JOIN posts p ON u.id = p.author_id
+// LEFT JOIN post_image pi ON p.id = pi.post_id
+// WHERE u.name = $1
+// GROUP BY u.id;
+
+
+
+
+
+
 
 
       console.log(queryResult.rows);
@@ -289,7 +379,115 @@ app.get("/posts", async (req, res)=>{
 
 
 
-app.post("/comment", async(req, res) => {
+
+
+
+// ADD USERNAME AND USER PROFILE PICTURE
+// get rid of id, probably
+// ADD THE NUMBER OF LIKES AND IF THE USER QUERYING HAS ALREADY LIKED IT
+app.get("/post", async (req, res) => {
+	const { id } = req.query;
+	try {
+		const queryResult = await pool.query(
+			`SELECT 
+				author_id, 
+				content, 
+				created_at, 
+				users.name,
+				users.pf_pic,
+				coalesce(
+					json_agg(
+						json_build_object(
+							'id', post_image.id,
+							'image', image
+						) ORDER BY position
+					) FILTER(WHERE post_image.id IS NOT NULL), '[]'
+				) as images
+			FROM 
+				posts 
+			LEFT JOIN 
+				post_image
+			ON post_image.post_id = posts.id
+			LEFT JOIN 
+				users
+			ON users.id = author_id
+			WHERE 
+				posts.id = $1
+			GROUP BY
+				author_id,
+				content,
+				created_at,
+				users.name,
+				users.pf_pic
+			`
+		, [id]);
+		res.status(200).send(queryResult.rows);
+	} catch(e) {
+		console.log(e);
+		res.status(500).send();
+	}
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// important
+// https://chatgpt.com/c/675b1ef7-d1d4-8008-882b-a91c8db45944
+{/*
+SELECT 
+	u.id, count(p.id), count(s.id) 
+FROM
+	users as u
+		join 
+			posts as p
+		on u.id = p.author_id
+		join 
+			subscriptions as s
+		on u.id = s.followed_id
+GROUP BY u.id HAVING u.id = 3	
+*/}
+
+app.get("/user_profile", async (req, res)=>{
+	const username = req.query.username;
+	try {
+		// multiple left joins are bad, need to add filters, or change joins to something
+		// https://chatgpt.com/c/67619e2b-f170-8008-90c3-59eb663c6d2b
+		// should try to change to cte's
+		const queryResult = await pool.query(
+				`SELECT 
+					users.id, 
+					users.pf_pic,
+					COUNT(DISTINCT posts.id) as post_count,
+					COUNT(DISTINCT subscriptions.id) as sub_count
+				FROM 
+					users 
+				LEFT JOIN 
+					posts on users.id = posts.author_id
+				LEFT JOIN
+					subscriptions on users.id = subscriptions.follower_id
+				WHERE users.name = $1
+				GROUP BY users.id;`
+			, [username]);
+		res.status(200).send(queryResult.rows);
+	} catch(e) {
+		console.log(e);
+		res.status(500).send('Query failed');
+	}
+})
+
+
+app.post("/comment", async (req, res) => {
 	const { authorID, postID, text, parentCommentID } = req.body;
 	// author id and all of that stuff
 	// const client = await pool.connect();
@@ -309,23 +507,69 @@ app.post("/comment", async(req, res) => {
 
 
 app.get("/comments", async(req, res) => {
-	
-	const { id } = req.body;
-	const client = await pool.connect(); 
-
+	const { post_id } = req.query; // this is get, retard
 	try {
-		client.query("SELECT * FROM comments WHERE post_id = $1", [id]);
-		// select all rows from post_comment with given post id
-		// then group them so there is a list of root comment and replies to them
+		const queryResult = await pool.query(
+			`SELECT 
+				post_id,
+				content
+			FROM
+				comments
+			WHERE
+				post_id = $1 AND parent_comment_id IS NOT NULL;`
+		, [post_id]);
+		console.log(queryResult.rows);
+		res.status(200).send(queryResult.rows);
+
 	} catch(e) {
 		console.log(e);
-		res.status(500).send("db error getting comment");
-	} finally {
-		client.release();
+		res.status(500).send("db error getting comments");
 	}
+});
 
+
+app.get("/user", async (req, res) => {
 
 });
+
+
+// it will throw an error because of constraints
+// rewrite with body and add an action field
+app.post("/like_post", async (req, res) => {
+	const {post_id, user_id} = req.query;
+	console.log(post_id, " ", user_id);
+	console.log("works");
+	// try {
+	// 	const queryResult = await pool.query("INSERT INTO post_like (post_id, user_id) values ($1, $2)", [post_id, user_id]);
+	// 	res.send();
+	// } catch(e) {
+	// 	res.send();
+	// }
+	res.status(200).send();
+})
+
+
+app.post("/subscription", async (req, res) => {
+	const {follower_id, followee_id} = req.body;
+	try {
+		const queryResult = await pool.query("ISNERT INTO subscriptions (follower_id, followed_id) values ($1, $2)", [follower_id, followee_id]);
+		res.send();
+	} catch(e) {
+		res.send();
+	}
+})
+
+
+app.post("/like_comment", async (req, res) => {
+	const {comment_id, user_id} = req.body;
+	try {
+		const queryResult = await pool.query("INSERT INTO comment_like (comment_id, user_id) values ($1, $2)", [comment_id, user_id]);
+		res.send()
+	} catch(e) {
+		res.send()
+	}
+
+})
 
 
 
@@ -338,22 +582,12 @@ app.listen(3000, ()=>console.log("working"));
 
 
 
-	
-
-    
-    // https://chatgpt.com/c/673cf29a-7588-8008-bf38-f567e37ad2be
-    // USE MULTER INSTEAD OF TRYING TO WRITE THIS RETARDED GARBAGE
-    // https://chatgpt.com/c/673cf29a-7588-8008-bf38-f567e37ad2be
 
 
     
 
-
-
-
-    {/*
-        Access the Uploaded File in Code Multer provides metadata about the uploaded file in req.file (for single-file uploads) or req.files (for multiple files). Here's an example of what req.file contains:
-
+{/*
+Access the Uploaded File in Code Multer provides metadata about the uploaded file in req.file (for single-file uploads) or req.files (for multiple files). Here's an example of what req.file contains:
 {
   "fieldname": "image",
   "originalname": "example.jpg",
@@ -364,36 +598,6 @@ app.listen(3000, ()=>console.log("working"));
   "path": "uploads/29f40c91b98b1341",
   "size": 102394
 }
-        */}
-
-
-
-{/*
-
-app.get('/post/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('SELECT image FROM posts WHERE id = $1', [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
-
-    const imageBuffer = result.rows[0].image;
-
-    // Set appropriate headers for the image and send it
-    res.writeHead(200, {
-      'Content-Type': 'image/jpeg',
-      'Content-Length': imageBuffer.length,
-    });
-    res.end(imageBuffer);
-  } catch (error) {
-    console.error('Error fetching image:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
 */}
 
 
@@ -401,217 +605,9 @@ app.get('/post/:id', async (req, res) => {
 
 
 
-{/*
-    app.get('/post/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('SELECT image FROM posts WHERE id = $1', [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
-
-    const imageBuffer = result.rows[0].image;
-
-    // Set appropriate headers for the image and send it
-    res.writeHead(200, {
-      'Content-Type': 'image/jpeg',
-      'Content-Length': imageBuffer.length,
-    });
-    res.end(imageBuffer);
-  } catch (error) {
-    console.error('Error fetching image:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-    */}
-
-{/*
     
     
     
-const express = require("express");
-const { Pool } = require("pg");
-
-const app = express();
-const pool = new Pool({
-  user: "your_db_user",
-  host: "localhost",
-  database: "your_db_name",
-  password: "your_db_password",
-  port: 5432,
-});
-
-// Route to fetch an image by ID
-app.get("/images/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Fetch the image data from the database
-    const result = await pool.query("SELECT image FROM posts WHERE id = $1", [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).send("Image not found");
-    }
-
-    const imageBuffer = result.rows[0].image;
-
-    // Set appropriate headers and send the image data
-    res.set("Content-Type", "image/jpeg"); // Adjust Content-Type based on your stored images
-    res.send(imageBuffer);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    res.status(500).send("Server error");
-  }
-});
-
-// Start the server
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
-});
-
-
-
-
-
-
-
-
-
-import React, { useEffect, useState } from "react";
-
-const ImageDisplay = ({ imageId }) => {
-  const [imageSrc, setImageSrc] = useState("");
-
-  useEffect(() => {
-    const fetchImage = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/images/${imageId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch image");
-        }
-
-        // Convert the binary data to a Blob and create an object URL
-        const blob = await response.blob();
-        const imageUrl = URL.createObjectURL(blob);
-        setImageSrc(imageUrl);
-      } catch (error) {
-        console.error("Error fetching image:", error);
-      }
-    };
-
-    fetchImage();
-  }, [imageId]);
-
-  return (
-    <div>
-      {imageSrc ? (
-        <img src={imageSrc} alt="Fetched from server" style={{ width: "300px" }} />
-      ) : (
-        <p>Loading...</p>
-      )}
-    </div>
-  );
-};
-
-export default ImageDisplay;
-
-
-
-
-
-
-
-
-
-
-
-app.get("/images", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT id, image FROM posts");
-    res.json(result.rows);
-  } catch (error) {
-    console.error("Error fetching images:", error);
-    res.status(500).send("Server error");
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-import React, { useEffect, useState } from "react";
-
-const ImageGallery = () => {
-  const [images, setImages] = useState([]);
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/images");
-        if (!response.ok) {
-          throw new Error("Failed to fetch images");
-        }
-
-        const data = await response.json();
-
-        // Map over each image row to convert binary to object URLs
-        const imageUrls = data.map((row) => ({
-          id: row.id,
-          src: URL.createObjectURL(new Blob([row.image])),
-        }));
-
-        setImages(imageUrls);
-      } catch (error) {
-        console.error("Error fetching images:", error);
-      }
-    };
-
-    fetchImages();
-  }, []);
-
-  return (
-    <div>
-      {images.length > 0 ? (
-        images.map((image) => (
-          <img
-            key={image.id}
-            src={image.src}
-            alt={`Image ${image.id}`}
-            style={{ width: "300px", margin: "10px" }}
-          />
-        ))
-      ) : (
-        <p>Loading images...</p>
-      )}
-    </div>
-  );
-};
-
-export default ImageGallery;
-
-
-
-
-
-
-
-
-
-*/}
-
-
-
-
-
-
-
 
 
 
@@ -685,30 +681,3 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
 }
 */}
 
-
-// QUERIES TO DO
-/*
-// user search
-client.query("select * from users where name = $1", []);
-// user posts on the profile page
-// queryString +=  " ORDER BY id LIMIT 10 OFFSET " + (page-1)*10;
-client.query("select * from posts where author_id = $1", []);
-// user liked posts page
-// get likes of the user
-client.query("select * from post_like where user_id = $1", [])
-// get posts from those likes
-client.query("select * from posts where id = $1", []) // = post_id
-// user subscriptions
-client.query("select * from subscriptions where follower_id = $1", [])
-client.query("select * from users where id = $1", [])
-// new comment like 
-client.query("insert into comment_like () values", [])
-// new post like 
-client.query("insert into post_like () values", [])
-// new comment
-client.query("insert into comments", [])
-// new post
-client.query("insert into posts", [])
-// user feed
-client.query("select * from posts where ", [])
-*/

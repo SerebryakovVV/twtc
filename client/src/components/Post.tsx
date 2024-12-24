@@ -1,46 +1,137 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IoIosHeartEmpty } from "react-icons/io";
 import { IoIosHeart } from "react-icons/io";
 import { FaReply } from "react-icons/fa";
+import { FaRegComment } from "react-icons/fa";
 import { IoCloseSharp } from "react-icons/io5";
+import PostImages from "./PostImages";
+import { useParams } from "react-router-dom";
+import { timestampTransform, imgResToObjUrl } from "../utils";
+import { Link } from "react-router-dom";
 
 // the query for getting all the comment as array of arrays https://chatgpt.com/c/6750a6e8-dda4-8008-941c-576f561606fc
 // also cte, recursive queries and postgres functions
 
-export default function Post({username, text, timestamp, likesNum, commentsNum}:{username: string, text: string, timestamp: string, likesNum: number, commentsNum: number}) {
-    
-    const [isLiked, setIsLiked] = useState<boolean>(true);
 
-    const handleLike = async () => {
-        
-        try {
-            const response = await fetch("http://localhost:3000/like", {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    // will need to pass post id through props and get user id from redux
-                    toLike: isLiked ? false : true
-                })
-            });
-            const responseJson = await response.json();
-            if (responseJson.success) {
-                setIsLiked(isLiked ? false : true);
-            } 
-        } catch(e) {
-            console.log(e);
+
+export default function Post() {
+
+    // when going from the feed to here, use state inside navigate
+    // also check if state empty, so if user gets here from the search bar, the query would be sent
+
+    const [text, setText] = useState("");
+    const [username, setUsername] = useState("");
+    const [timestamp, setTimestamp] = useState<string>("");
+    const [images, setImages] = useState([]);
+    const [pfp, setPfp] = useState<string | null>();
+    const [likesNum, setLikesNum] = useState()
+    const [commentsNum, setCommentsNum] = useState()
+    const [comments, setComments] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+
+    const { id } = useParams();
+
+    useEffect(()=>{
+
+        const getRootComments = async () => {
+            try {
+                const response = await fetch("http://localhost:3000/comments?post_id=" + id);
+                const responseJson = await response.json();
+                console.log(responseJson);
+                console.log(responseJson);
+
+            } catch(e) {
+                console.log(e);
+            }
         }
+
+        const getPost = async () => {
+            try {
+                const response = await fetch("http://localhost:3000/post?id=" + id);
+                const responseJson = await response.json();
+                console.log(responseJson);
+                setText(responseJson[0].content);
+                setUsername(responseJson[0].name);
+                console.log(responseJson[0].created_at);
+                setTimestamp(timestampTransform(responseJson[0].created_at));
+                setPfp(responseJson[0].pf_pic);
+                setImages(responseJson[0].images.length === 0 ? [] : responseJson[0].images.map((e) => ({...e, image: imgResToObjUrl(e.image)})));
+                setLoading(false);
+                getRootComments();
+            } catch(e) {
+                // add error
+                console.log(e);
+            }
+        }
+        getPost();
+    }, []);
+
+
+    // check if not loading
+
+
+    // if (loading) return null;
+    // if (text === undefined) return null;
+
+    const test = () => {
+        // console.log(text);
+        // console.log(username);
+        console.log(timestamp);
+        // console.log(pfp);
+        // console.log(images);
+
     }
-
-    
-
 
     return(
         
-
         <div>
-            <div className="w-full border-b border-zinc-300">
+
+            
+                    <div className="w-full border-b border-zinc-300">
+                        <div className="flex pl-3 pt-2">
+                            <div className="flex items-center mr-2 cursor-pointer" onClick={()=>window.location.reload()}>
+                                <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]"/>
+                            </div>
+                            <div>
+                                <div className="cursor-pointer" onClick={()=>window.location.reload()}>{username}</div>
+                                <div>{timestamp}</div>
+                            </div>
+                        </div>
+                        <div className="px-3 mb-2 mt-1">
+                            {text.length < 200 ? text :
+                                <div>{text.slice(0, 250) + "..."}
+                                    <div className="text-blue-600 underline">
+                                        <Link to={"/post/" + id}>Read more</Link>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+
+                            <button onClick={test}>hello</button>
+
+            
+                        {/* <PostImages images={images}/> */}
+            
+                        {/* <div className="my-1 h-[30px] flex justify-around">
+                            <div className="flex cursor-pointer" onClick={handleLike}>
+                                <span className="pt-[5px] pr-1">{isLiked ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
+                                <span>{likesNum}</span>
+                            </div>
+                            <div className="flex cursor-pointer" onClick={()=>navigate("/post/" + id)}>
+                                <span className="pt-[5px] pr-1"><FaRegComment /></span>
+                                <span>{commentsNum}</span>
+                            </div>
+                        </div> */}
+                    </div>
+
+
+            
+
+
+
+            {/* <div className="w-full border-b border-zinc-300">
                 <div className="flex pl-3 pt-2">
                     <div className="flex items-center mr-2">
                         <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]"/>
@@ -51,38 +142,31 @@ export default function Post({username, text, timestamp, likesNum, commentsNum}:
                     </div>
                 </div>
                 <div className="px-3 mb-2 mt-1">
-                    {text}
+                    {text} 
                 </div>
     
+                    <PostImages images={[]}/>
 
-
-
-                    {/* <PostImages /> */}
-
-
-
-
-
-
-
-
-
-                <div className="my-1 h-[30px] flex justify-around">
-                    <div className="flex">
+                 <div className="my-1 h-[30px] flex justify-around">
+                    <div 
+                        className="flex"
+                        onClick={handleLike}
+                    >
                         <span className="pt-[5px] pr-1">{isLiked ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
-                        <span>{likesNum}</span>
+                        <span>{likesNum}</span> 
                     </div>
                     <div className="flex">
-
+                        <span className="pt-[5px] pr-1"><FaRegComment /></span>
                         <span>{commentsNum}</span>
                     </div>
-                </div>
-            </div>
+                </div> 
+            </div> */}
 
            
-
-            
-                {/* <Comment 
+           
+            {/* <NewReply postID={1} parentCommentID={2}/>
+            <div>Comments</div>
+                     <Comment 
                     root={true} 
                     username="valya" 
                     timestamp="02.12.2024" 
@@ -90,130 +174,83 @@ export default function Post({username, text, timestamp, likesNum, commentsNum}:
                     isLiked={true}
                     /> */}
 
-                
-
-
-                    
-
 
             </div>
-
         );
-  
 }
 
 
-function Comment({root, username, timestamp, text, isLiked}:{root:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
+// function Comment({root, username, timestamp, text, isLiked}:{root:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
 
-    const [isReplyActive, setIsReplyActive] = useState<boolean>(true);
+//     const [isReplyActive, setIsReplyActive] = useState<boolean>(true);
+//     const [isLikedState, setIsLikedState] = useState<boolean>(false);
 
-    return(
-        // <div className={`${!root && "pl-[50px]"}`}>
-        <div className={`${root ? "pl-2" : "pl-[50px]"} pr-2`}>
-            <div className="flex">
-                <div className="flex items-center">
-                    <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]" />
-                </div>
-                <div>
-                    <div>
-                        {username}
-                    </div>
-                    <div>
-                        {timestamp}
-                    </div>
-                </div>
-            </div>
+//     const handleLike = () => {
+//         setIsLikedState(!isLikedState);
+//     }
 
-            <div>
-                {text}
-            </div>
+//     return(
+//         // <div className={`${!root && "pl-[50px]"}`}>
+//         <div className={`${root ? "pl-2" : "pl-[50px]"} pr-2`}>
+//             <div className="flex">
+//                 <div className="flex items-center">
+//                     <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]" />
+//                 </div>
+//                 <div>
+//                     <div>
+//                         {username}
+//                     </div>
+//                     <div>
+//                         {timestamp}
+//                     </div>
+//                 </div>
+//             </div>
 
-            <div className="flex">
-                {isLiked ? <IoIosHeart /> : <IoIosHeartEmpty />}
-                <span onClick={()=>setIsReplyActive(!isReplyActive)}>{isReplyActive ? <IoCloseSharp /> : <FaReply  />}</span>
-            </div>
+//             <div>
+//                 {text}
+//             </div>
+
+//             <div className="flex">
+//                 <span className="pt-[2px]" onClick={handleLike}>{isLikedState ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
+//                 <span className="text-sm">123</span>
+//                 <span className="pt-[2px]" onClick={()=>setIsReplyActive(!isReplyActive)}>{isReplyActive ? <IoCloseSharp /> : <FaReply  />}</span>
+//             </div>
             
-            {isReplyActive && <NewReply postID={1} parentCommentID={2}/>}
+//             {isReplyActive && <NewReply postID={1} parentCommentID={2}/>}
             
-        </div>
-    );
-}
+//         </div>
+//     ); 
+// }
 
 
-function NewReply({postID, parentCommentID}:{postID:number, parentCommentID:number}) {
+// function NewReply({postID, parentCommentID}:{postID:number, parentCommentID:number}) {
+//     // get author_id from the redux i guess
+//     // ger post_id as props
+//     // text from state
+//     // parent_comment_id as props too 
+//     const [reply, setReply] = useState<string>("");
 
-    // get author_id from the redux i guess
-    // ger post_id as props
-    // text from state
-    // parent_comment_id as props too 
-    const [reply, setReply] = useState<string>("");
+//     const handleReplyChange = (e) => {
+//         setReply(e.target.value);
+//     }
 
-    const handleReplyChange = (e) => {
-        setReply(e.target.value);
-    }
+//     const handleReplySend = async () => {
+//         console.log(reply);
 
-    const handleReplySend = async () => {
-        console.log(reply);
+//             // await fetch("http://localhost:3000/comment", {
+//             //     method: "POST",
+//             //     headers: {
+//             //         'Content-Type': 'application/json' 
+//             //     },
+//             //     body: JSON.stringify({postID, parentCommentID, reply, })
+//             // });
+//     }
 
-            
-        
-            // await fetch("http://localhost:3000/comment", {
-            //     method: "POST",
-            //     headers: {
-            //         'Content-Type': 'application/json' 
-            //     },
-            //     body: JSON.stringify({postID, parentCommentID, reply, })
-            // });
-        
-
-        
-
-    }
-
-    return(
-        <div>
-            <input value={reply} onChange={handleReplyChange} type="text" className="bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none focus:outline-none text-sm"/>
-            <button onClick={handleReplySend}>Send</button>
-        </div>
-    );
-}
-
-
-function PostImages({images}:{images:any[]}) {
-    let layout: string[] = [];
-    if (images && images.length !== 0) {
-        switch (images.length) {
-        case 1:
-            layout.push("col-span-2 row-span-2");
-            break;
-        case 2:
-            layout.push("col-span-1 row-span-2");
-            layout.push("col-span-1 row-span-2");
-            break;
-        case 3:
-            layout.push("col-span-1 row-span-2");
-            layout.push("col-span-1 row-span-1");
-            layout.push("col-span-1 row-span-1");
-            break;
-        case 4:
-            layout.push("col-span-1 row-span-1");
-            layout.push("col-span-1 row-span-1");
-            layout.push("col-span-1 row-span-1");
-            layout.push("col-span-1 row-span-1");
-            break;
-        } 
-    }
-    return(
-        <div className="grid grid-cols-2 grid-rows-2 w-[476px] h-[238px] border border-zinc-300 m-auto">
-            {images.map((img, index)=>{
-                return(
-                    <img src={img.image} className={layout[index]}/>
-                )
-            })} 
-            {/* <div className="col-span-1 row-span-2">1</div> */}
-            {/* <div className="col-span-1 row-span-1">2</div> */}
-            {/* <div className="col-span-1 row-span-1">3</div>  */}
-            {/* <div>4</div>     */}
-        </div>   
-    );
-}
+//     return(
+//         <div className="border-b border-zinc-300 p-3">
+//             <div>Reply</div>
+//             <input value={reply} onChange={handleReplyChange} type="text" className="bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none focus:outline-none text-sm"/>
+//             <button onClick={handleReplySend}>Send</button>
+//         </div>
+//     );
+// }
