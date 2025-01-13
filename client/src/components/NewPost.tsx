@@ -29,6 +29,10 @@ export default function NewPost() {
     const createNewPost = async () => {
         const formattedText = text.replace(/\n{3,}/g, '\n\n');
         let id: string | Blob;
+
+        // check later
+        // and rewrite, what the fuck even is this
+        // id = authorID || ""
         if (authorID) {
             id = authorID;
         } else {
@@ -38,9 +42,6 @@ export default function NewPost() {
         formData.append('text', formattedText);
         formData.append('authorID', id);
         filesState.forEach((image) => formData.append('images', image));
-        // formData.append('images', filesState[0]);
-        console.log(formData);
-        console.log(images);
         try {
             const response = fetch("http://localhost:3000/post", {
 				method:"POST",
@@ -48,6 +49,9 @@ export default function NewPost() {
 			});
             console.log(response);
             setText("");
+            // check this later
+            setFilesState([]);
+            setImages([]);
         } catch(e) {
             console.log(e);
         }
@@ -79,17 +83,26 @@ export default function NewPost() {
         <div className="p-2 border-b border-zinc-300 text-lg">New post
             <textarea 
                 ref={textAreaRef}
-                className={`bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none focus:outline-none text-sm`}
+                className={`bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none focus:outline-none text-sm overflow-hidden`}
                 value={text}
                 onChange={handeleTextChange}>
             </textarea>
             <input id="file-input" className="hidden" type="file" accept="image/*" multiple onChange={handleImageChange}/>
             <div className="mt-1">
+                <div className="flex">
+                    {images.map((i)=>{return(
+                        <div className="w-[100px] h-[100px] mr-4 border border-zinc-300">
+                           <img className="object-cover object-center w-full h-full" src={i}/>
+                        </div>
+                    )})}
+                </div>
+                
                 <label htmlFor="file-input" className="hover:cursor-pointer m-2"><SlPaperClip style={{color:"black", display:"inline"}} size={20} /></label>
                 <button onClick={createNewPost} className="ml-1 p-1 text-lg">Send</button>
+                
             </div>
             
-            {/* {images.map((i)=><img className="w-[50px] h-[50px] object-contain" src={i}/>)}*/}
+            
             
         </div> 
     )

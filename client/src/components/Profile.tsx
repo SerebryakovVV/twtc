@@ -8,11 +8,15 @@ import FeedPost from './FeedPost.tsx'
 import { imgResToObjUrl } from "../utils.ts"
 
 
+// IF NO USER FOUND ADD HANDLING
+
+
 type profilePageError = "User doesn't exist" | "Something went wrong";
 
 
 export default function Profile() {
     const reduxUsername = useSelector((state: RootState) => state.auth.username);
+    const reduxId = useSelector((state: RootState) => state.auth.id);
     const { queryUsername } = useParams();
     const [posts, setPosts] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -21,18 +25,21 @@ export default function Profile() {
     const [userId, setUserId] = useState<number | null>(null)
     const [subCount, setSubCount] = useState<number | null>(null);
     const [postCount, setPostCount] = useState<number | null>(null);
+    const [isFollowing, setIsFollowing] = useState<boolean>();
 
     useEffect(()=>{
 
         const getPosts = async (id) => {
             try {
-                const queryResult = await fetch(`http://localhost:3000/posts?id=${id}`);
+                // ALL OF THAT SHOULD BE REWRITTEN WITH QUERY RETURNING ONE ID AND AN ARRAY OF POSTS, BUT FIRST THE GETUSER QUERY
+                const queryResult = await fetch("http://localhost:3000/user_posts?id=" + id + "&viewer_id=" + reduxId);
                 if (!queryResult.ok) throw new Error("Error fetching the posts");
                 const queryResultJson = await queryResult.json();
                 if (queryResultJson.length === 0) {
                     // exit the function, state would be empty, conditional rendering will handle
                     // or map will just pass
                 }
+                // PROBABLY DONT EVEN NEED TO REWRITE STUFF, IT STILL RETURNS AN ARRAY
                 setPosts(queryResultJson);
                 console.log(queryResultJson);
             } catch(e) {
@@ -41,24 +48,28 @@ export default function Profile() {
                 // setError("Something went wrong");
             }
         }
-    
+
         const getUser = async () => {
             try {
-                const queryResult = await fetch("http://localhost:3000/user_profile?username=" + queryUsername);
+                const queryResult = await fetch("http://localhost:3000/user_profile?username=" + queryUsername + "&follower_id=" + reduxId);
                 if (!queryResult.ok) throw new Error("Query failed");
                 const queryResultJson = await queryResult.json();
                 if (queryResultJson.length === 0) {
+                    // add it to the ui
                     setError("User doesn't exist");
                 } else {
+                    console.log(queryResultJson)
                     setUserId(queryResultJson[0].id);
                     setSubCount(queryResultJson[0].sub_count);
                     setPostCount(queryResultJson[0].post_count);
                     // will need to check this, for now - no profile pics; can be wrong field
-                    setPfp(queryResultJson[0].pf_pic && imgResToObjUrl(queryResultJson[0].pf_pic.data))
+                    setPfp(queryResultJson[0].pf_pic && imgResToObjUrl(queryResultJson[0].pf_pic.data));
+                    setIsFollowing(queryResultJson[0].is_following)
                     getPosts(queryResultJson[0].id);
                 }
             } catch(e) {
                 console.log(e);
+                // add it to the ui
                 setError("Something went wrong");
             }
         }
@@ -66,6 +77,9 @@ export default function Profile() {
         // return imageObjects.forEach(i => URL.revokeObjectURL(i));
     }, [queryUsername])
 
+
+
+    
 
 
     // NEED TO REWRITE THE SQL QUERY SO IT WOULD SEND ID ONE TIME
@@ -77,24 +91,27 @@ export default function Profile() {
     return(
         <div className="">
             <ProfileHeader 
+                followedId={userId}
+                isFollowing={isFollowing}
                 pfp={pfp} 
                 username={queryUsername} 
                 subCount={subCount}
                 postCount={postCount} 
             />
         {reduxUsername === queryUsername ? <NewPost/> : null}
-        {
-         posts.map((p)=>{
+        
+        {posts.map((p)=>{
             return(<FeedPost 
-                        id={p.post_id}
+                key={p.id}
+                        id={p.id}
                         username={queryUsername as string}
                         timestamp={p.created_at}
                         text={p.content}
                         images={p.images}
-                        likesNum={10}
-                        commentsNum={12}
-                    />)})
-                    }
+                        likesNum={Number(p.likes_count)}
+                        commentsNum={Number(p.comments_count)}
+                        isLikedByUser={p.liked_by_user}
+        />)})}
         </div>
     );
 }

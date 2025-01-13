@@ -1,7 +1,7 @@
 import { FaRegComment } from "react-icons/fa";
 import { IoIosHeartEmpty } from "react-icons/io";
 import { IoIosHeart } from "react-icons/io";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PostImages from "./PostImages";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -16,16 +16,27 @@ type FeedPostPropsType = {
     text: string,
     images: any[],  
     likesNum: number, 
-    commentsNum: number
+    commentsNum: number,
+    isLikedByUser: boolean
 }
 
-export default function FeedPost({id, username, timestamp, text, images, likesNum, commentsNum}: FeedPostPropsType) {
 
-    const [isLiked, setIsLiked] = useState<boolean>(true);
+
+
+
+export default function FeedPost({id, username, timestamp, text, images, likesNum, commentsNum, isLikedByUser}: FeedPostPropsType) {
+
+    const [isLiked, setIsLiked] = useState<boolean>(isLikedByUser);
     const [isLikeLoading, setIsLikeLoading] = useState<boolean>(false);
     const navigate = useNavigate();
-    const reduxUsername = useSelector((state: RootState) => state.auth.username);
+    // const reduxUsername = useSelector((state: RootState) => state.auth.username);
+    const userId = useSelector((state: RootState) => state.auth.id);
+    const [likes, setLikes] = useState<number>(likesNum);
 
+
+    // useEffect(()=>{
+    //     setIsLiked(isLikedByUser);
+    // }, [isLikedByUser])
 
     // rewrite to handle unlike
     // also need to get user likes to see if already liked
@@ -33,23 +44,31 @@ export default function FeedPost({id, username, timestamp, text, images, likesNu
     const handleLike = async () => {
         if (!isLikeLoading) {
             setIsLikeLoading(true);
-            const response = await fetch("http://localhost:3000/like_post?post_id=" + id + "&user_id=" + reduxUsername, {method:"POST"});
-            if (response.ok) setIsLiked(!isLiked);
+            console.log("one");
+            console.log(id, userId);
+            const response = await fetch("http://localhost:3000/like_post", {
+                method: isLiked ? "DELETE" : "POST",
+                headers:{"Content-Type": "application/json"},
+                body:JSON.stringify({
+                    id,
+                    userId,
+                })
+            });
+            console.log("two");
+            if (response.ok) {
+                setIsLiked(!isLiked);
+                setLikes((l)=>isLiked ? l - 1 : l + 1);
+            }
             setIsLikeLoading(false);
+            console.log("three");
         }
     }
 
-    // const timestampTransform = (ts: string) => {
-    //     const date = new Date(ts);
-    //     const day = String(date.getDate()).padStart(2, '0');
-    //     const month = String(date.getMonth() + 1).padStart(2, '0');
-    //     const year = date.getFullYear();
-    //     const hours = String(date.getHours()).padStart(2, '0');
-    //     const minutes = String(date.getMinutes()).padStart(2, '0');
-    //     return `${day}.${month}.${year} ${hours}:${minutes}`;
-    // }
+   
 
     return(
+
+        // when i click pfp/username the follower_id=null
         <div className="w-full border-b border-zinc-300">
             <div className="flex pl-3 pt-2">
                 <div className="flex items-center mr-2 cursor-pointer" onClick={()=>window.location.reload()}>
@@ -75,7 +94,7 @@ export default function FeedPost({id, username, timestamp, text, images, likesNu
             <div className="my-1 h-[30px] flex justify-around">
                 <div className="flex cursor-pointer" onClick={handleLike}>
                     <span className="pt-[5px] pr-1">{isLiked ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
-                    <span>{likesNum}</span>
+                    <span>{likes}</span>
                 </div>
                 <div className="flex cursor-pointer" onClick={()=>navigate("/post/" + id)}>
                     <span className="pt-[5px] pr-1"><FaRegComment /></span>
