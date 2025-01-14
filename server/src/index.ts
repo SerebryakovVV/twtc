@@ -412,7 +412,7 @@ app.post("/comment", async (req, res) => {
 	}
 })
 
-// 	ADD ID TO THE SELECT
+// this needs to return the root comments so i should add ...and parent_comment_id = null
 app.get("/comments", async(req, res) => {
 	const { post_id } = req.query; // this is get, retard
 	try {
@@ -439,6 +439,8 @@ app.get("/comments", async(req, res) => {
 		res.status(500).send("db error getting comments");
 	}
 });
+
+
 
 
 app.get("/comment_replies", async (req, res) => {
@@ -528,6 +530,30 @@ app.post("/like_comment", async (req, res) => {
 	}
 
 })
+
+
+
+
+
+app.post("/pfp", upload.single("pfp"), async (req, res) => {
+	const { id } = req.body;
+	const file = req.file;
+	if (!file) {res.status(400).send(); return;}  
+	const buffer = await fs.promises.readFile(file.path);
+	try {
+		const queryResult = await pool.query("UPDATE users SET pf_pic = $1 WHERE id = $2", [buffer, id]);
+		console.log("pfp added")
+		res.status(200).send();
+	} catch(e) {
+		console.log(e);
+		res.status(500).send();
+	} finally {
+		// this can error btw
+		await fs.promises.unlink(file.path)
+	}
+})
+
+
 
 
 

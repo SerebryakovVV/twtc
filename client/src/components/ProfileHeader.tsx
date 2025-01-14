@@ -46,28 +46,21 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
         }
     }
 
-    const handlePfpChange = () => {
-
-
+    const handlePfpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!authID || !e.target.files) return;
         const formData = new FormData();
-        formData.append('text', formattedText);
-        formData.append('authorID', id);
-        filesState.forEach((image) => formData.append('images', image));
+        formData.append('id', authID);
+        formData.append('pfp', e.target.files[0])
         try {
-            const response = fetch("http://localhost:3000/post", {
+            const response = fetch("http://localhost:3000/pfp", {
 				method:"POST",
 				body: formData
 			});
             console.log(response);
-            setText("");
-            // check this later
-            setFilesState([]);
-            setImages([]);
+            // window.location.reload();
         } catch(e) {
             console.log(e);
         }
-
-
     }
 
     return(
@@ -89,14 +82,16 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
                         Posts: {postCount} 
                     </span>
                 </div>
-                {username === authUsername ?
-                // change to button, or input
-                <div onClick={handlePfpChange} className="underline mt-2 text-blue-500 cursor-pointer">change profile picture</div>
-                :
-                    <button 
+                {username === authUsername 
+                    ?<div>
+                        <input onChange={handlePfpChange} id="file-input" className="hidden" type="file" accept="image/*"/>
+                        <label htmlFor="file-input" className="underline mt-2 ml-1 cursor-pointer">
+                            change picture
+                        </label>
+                    </div>
+                    :<button 
                         onClick={handleFollow}
-                        className="text-lg hover:bg-zinc-200 rounded-md px-1 mt-2 border border-zinc-300"
-                    >
+                        className="text-lg hover:bg-zinc-200 rounded-md px-1 mt-2 border border-zinc-300">
                         {isFollowed ? "Unfollow" : "Follow" }
                     </button>
                 }            
