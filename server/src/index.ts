@@ -28,8 +28,7 @@ const pool = new pg.Pool({
 // ADD JWT
 // ADD LOGIN AFTER REGISTRATION AND REDIRECT 
 // https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
-app.post(
-    "/login",
+app.post("/login",
     body("username")
         .matches(/^[a-zA-Z0-9]{1,20}$/)
         .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
@@ -93,8 +92,7 @@ app.post(
 })
 
 
-app.post(
-    "/register", 
+app.post("/register", 
     body("username")
         .matches(/^[a-zA-Z0-9]{1,20}$/)
         .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
@@ -149,6 +147,8 @@ app.post(
 // multer and images https://chatgpt.com/c/67422857-082c-8008-8782-0c68431e4d7a
 // change to async file read
 // change to for ... of ... loop https://chatgpt.com/c/674230a0-71d4-8008-acd5-f4bd0e2721ad
+// I DONT NEED TO USE UPLOAD FOLDER, USE MEMORY, REWRITE EVERYTHING
+// RECONFIGURE THE MULTER, REWRITE PFP ENDPOINT TO USE MEMORY
 app.post("/post", upload.array('images'), async (req, res)=>{
 	// validation here
     const { text, authorID } = req.body;
@@ -413,9 +413,21 @@ app.post("/comment", async (req, res) => {
 })
 
 // this needs to return the root comments so i should add ...and parent_comment_id = null
-app.get("/comments", async(req, res) => {
-	const { post_id } = req.query; // this is get, retard
+app.get("/root_comments", async(req, res) => {
+	// const { post_id, userId } = req.query; 
+	const { post_id} = req.query; 
 	try {
+		/*
+		SELECT 
+	comments.id,
+	EXISTS(SELECT 1 FROM comment_like WHERE comment_id = comments.id and user_id = 2) as liked_by_user
+FROM comments 
+LEFT JOIN posts ON comments.post_id = posts.id 
+LEFT JOIN users ON users.id = comments.author_id
+LEFT JOIN comment_like on comment_like.user_id = users.id
+WHERE posts.id = 15
+GROUP BY comments.id;
+		*/
 		const queryResult = await pool.query(
 			`SELECT 
 				comments.id,
@@ -429,7 +441,8 @@ app.get("/comments", async(req, res) => {
 				users
 			ON comments.author_id = users.id
 			WHERE
-				post_id = $1;`
+				post_id = $1
+				;`
 		, [post_id]);
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);

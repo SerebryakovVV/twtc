@@ -45,8 +45,8 @@ export default function NewReply({postID, parentCommentID}:{postID:number | stri
     }
 
     return(
-        <div className="border-b border-zinc-300 p-3">
-            <div>Reply</div>
+        <div className="px-3 py-1">
+            <div className="text-lg">Reply</div>
             <textarea ref={replyRef} value={reply} onChange={handleReplyChange} className="bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none overflow-hidden focus:outline-none text-sm"/>
             <button onClick={handleReplySend}>Send</button>
         </div>

@@ -51,7 +51,8 @@ export default function Post() {
 
         const getRootComments = async () => {
             try {
-                const response = await fetch("http://localhost:3000/comments?post_id=" + id);
+                // const response = await fetch("http://localhost:3000/root_comments?post_id=" + id + "&user_id=" + userId);
+                const response = await fetch("http://localhost:3000/root_comments?post_id=" + id);
                 const responseJson = await response.json();
                 // console.log(responseJson, id);
                 setComments(responseJson);
@@ -115,6 +116,8 @@ export default function Post() {
     // check if not loading
 
 
+    const getCommentReplies = () => {}
+
     // if (loading) return null;
     // if (text === undefined) return null;
 
@@ -163,7 +166,7 @@ export default function Post() {
 
             
 
-            <div>Comments</div>
+            <div className="text-lg pl-3 border-t border-zinc-300">Comments</div>
 
             {comments.map((c)=>{
                 return(
