@@ -178,7 +178,9 @@ export default function Post() {
                         username={c.name} 
                         timestamp={timestampTransform(c.created_at)} 
                         text={c.content} 
-                        isLiked={true}
+                        isLiked={c.liked_by_user}
+                        replyCount={c.reply_num}
+                        likesNum={c.likes_num}
                     />
                 )
             })} 

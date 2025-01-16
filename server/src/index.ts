@@ -414,39 +414,40 @@ app.post("/comment", async (req, res) => {
 
 // this needs to return the root comments so i should add ...and parent_comment_id = null
 app.get("/root_comments", async(req, res) => {
-	// const { post_id, userId } = req.query; 
-	const { post_id} = req.query; 
+	const { post_id, userId } = req.query; 
 	try {
-		/*
-		SELECT 
-	comments.id,
-	EXISTS(SELECT 1 FROM comment_like WHERE comment_id = comments.id and user_id = 2) as liked_by_user
-FROM comments 
-LEFT JOIN posts ON comments.post_id = posts.id 
-LEFT JOIN users ON users.id = comments.author_id
-LEFT JOIN comment_like on comment_like.user_id = users.id
-WHERE posts.id = 15
-GROUP BY comments.id;
-		*/
 		const queryResult = await pool.query(
 			`SELECT 
-				comments.id,
-				comments.content,
-				comments.created_at,
 				users.name,
-				users.pf_pic
-			FROM
-				comments
-			LEFT JOIN
-				users
-			ON comments.author_id = users.id
-			WHERE
-				post_id = $1
-				;`
-		, [post_id]);
+				users.pf_pic,
+				comments.id, 
+				comments.created_at,
+				comments.content,
+				(SELECT 
+					COUNT(*) 
+					FROM comments c 
+					WHERE c.parent_comment_id = comments.id
+				) AS reply_num,
+				(EXISTS(
+					SELECT 1 
+					FROM comment_like cl 
+					WHERE cl.comment_id = comments.id AND cl.user_id = $1
+				)) AS liked_by_user,
+				COUNT(comment_like.id) as likes_num
+			FROM 
+				comments 
+			JOIN posts ON comments.post_id = posts.id
+			JOIN users ON users.id = comments.author_id
+			LEFT JOIN comment_like ON comment_like.comment_id = comments.id
+			WHERE posts.id = $2 AND comments.parent_comment_id IS NULL
+			GROUP BY users.name,
+				users.pf_pic,
+				comments.id, 
+				comments.created_at,
+				comments.content;`
+		, [userId, post_id]);
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
-
 	} catch(e) {
 		console.log(e);
 		res.status(500).send("db error getting comments");

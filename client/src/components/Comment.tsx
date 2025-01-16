@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import NewReply from "./NewReply";
 import { IoIosHeart, IoIosHeartEmpty } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
@@ -7,12 +7,19 @@ import { FaReply } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 
-export default function Comment({postId, id, root, username, timestamp, text, isLiked}:{postId:string | undefined, id:number, root:null | number, username:string, timestamp:string, text:string, isLiked:boolean}) {
+export default function Comment({postId, id, root, username, timestamp, text, isLiked, replyCount, likesNum}:{likesNum:number, replyCount:number, postId:string | undefined, id:number, root:null | number, username:string, timestamp:string, text:string, isLiked:boolean}) {
 
     const [isReplyActive, setIsReplyActive] = useState<boolean>(true);
     const [isLikedState, setIsLikedState] = useState<boolean>(false);
 
+    const [showReplies, setShowReplies] = useState<boolean>(false);
+    const [replyNum, setReplyNum] = useState<number>(0);
+
     // const { id } = useParams()
+
+    useEffect(()=>{
+        setIsLikedState(isLiked);
+    }, [isLiked])
 
     const navigate = useNavigate();
 
@@ -30,7 +37,6 @@ export default function Comment({postId, id, root, username, timestamp, text, is
 
 
     return(
-        // <div className={`${!root && "pl-[50px]"}`}>
         <div className={`${root ? "pl-[50px]" : "pl-2" } pr-2 pt-2 border-b border-zinc-300`}>
             <div className="flex">
                 <div className="flex items-center mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
@@ -52,7 +58,7 @@ export default function Comment({postId, id, root, username, timestamp, text, is
 
             <div className="flex pl-1">
                 <span className="pt-[2px]" onClick={handleLike}>{isLikedState ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
-                <span className="text-sm mr-1">123</span>
+                <span className="text-sm mr-1">{likesNum}</span>
                 <span className="pt-[2px]" onClick={()=>setIsReplyActive(!isReplyActive)}>{isReplyActive ? <IoCloseSharp /> : <FaReply  />}</span>
             </div>
 
@@ -60,27 +66,19 @@ export default function Comment({postId, id, root, username, timestamp, text, is
 
 
 
-            {/* replies number */}
+        
 
             
             {isReplyActive && <NewReply postID={postId} parentCommentID={id}/>}
 
-            { // replyCount > 0 && 
+            { 
                 <div className="ml-1 text-sm underline cursor-pointer mb-1" onClick={loadCommentReplies}>
-                    Show replies({123})
+                    Show replies({replyCount})
                 </div>
             }
 
 
-            {
-                // replies.map((r)=>{
-                //     return(
-                //         <Comment postId={postId} root={id} id={r.id} username={r.username} text={r.content} timestamp="12.12.2012" isLiked={false}/>
-                //     )
-                // })
-                // map over replies
-            }
-
+           
 
 
 
