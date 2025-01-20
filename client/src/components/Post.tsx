@@ -51,10 +51,11 @@ export default function Post() {
 
         const getRootComments = async () => {
             try {
-                // const response = await fetch("http://localhost:3000/root_comments?post_id=" + id + "&user_id=" + userId);
-                const response = await fetch("http://localhost:3000/root_comments?post_id=" + id);
+                const response = await fetch("http://localhost:3000/root_comments?post_id=" + id + "&user_id=" + userId);
+                // const response = await fetch("http://localhost:3000/root_comments?post_id=" + id);
                 const responseJson = await response.json();
                 // console.log(responseJson, id);
+                console.log(responseJson);
                 setComments(responseJson);
             } catch(e) {
                 console.log(e);
@@ -161,7 +162,7 @@ export default function Post() {
 
            
            
-            <NewReply postID={id} parentCommentID={null}/>
+            <NewReply hideReplyWhenSent={null} postID={id} parentCommentID={null}/>
 
 
             
@@ -171,16 +172,17 @@ export default function Post() {
             {comments.map((c)=>{
                 return(
                     <Comment 
+                        parentCommentIdToPass={c.id}
                         key={c.id} 
                         postId={id}
                         id={c.id} 
-                        root={null} 
+                        notRoot={false} 
                         username={c.name} 
                         timestamp={timestampTransform(c.created_at)} 
                         text={c.content} 
                         isLiked={c.liked_by_user}
-                        replyCount={c.reply_num}
-                        likesNum={c.likes_num}
+                        replyCount={c.reply_num as number}
+                        likesNum={c.likes_num as number}
                     />
                 )
             })} 

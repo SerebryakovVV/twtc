@@ -412,9 +412,10 @@ app.post("/comment", async (req, res) => {
 	}
 })
 
-// this needs to return the root comments so i should add ...and parent_comment_id = null
+// maybe add distinct
 app.get("/root_comments", async(req, res) => {
-	const { post_id, userId } = req.query; 
+	const { post_id, user_id } = req.query; 
+	console.log(post_id, user_id);
 	try {
 		const queryResult = await pool.query(
 			`SELECT 
@@ -445,7 +446,7 @@ app.get("/root_comments", async(req, res) => {
 				comments.id, 
 				comments.created_at,
 				comments.content;`
-		, [userId, post_id]);
+		, [user_id, post_id]);
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
@@ -456,11 +457,33 @@ app.get("/root_comments", async(req, res) => {
 
 
 
-
+// if i send text in 500 response, frontend needs to check if response.ok, or parsing breaks
 app.get("/comment_replies", async (req, res) => {
-	const { comment_id} = req.query;
+	const { comment_id, user_id } = req.query;
 	try {
-		// const queryResponse = await pool.query();
+		const queryResponse = await pool.query(`
+			
+			SELECT 
+	users.name,
+	users.pf_pic,
+	comments.id, 
+	comments.created_at,
+	comments.content,
+	(EXISTS(SELECT 1 FROM comment_like cl WHERE cl.comment_id = comments.id AND cl.user_id = $1)) AS liked_by_user,
+	COUNT(comment_like.id) AS likes_num
+FROM comments JOIN users ON comments.author_id = users.id
+LEFT JOIN comment_like ON comment_like.comment_id = comments.id
+WHERE comments.parent_comment_id = $2
+GROUP BY
+	users.name,
+	users.pf_pic,
+	comments.id, 
+	comments.created_at,
+	comments.content
+			
+			`, [user_id, comment_id]);
+
+			res.status(200).send(queryResponse.rows);
 	} catch(e) {
 		console.log(e);
 		res.status(500).send();
@@ -471,9 +494,7 @@ app.get("/comment_replies", async (req, res) => {
 
 
 
-app.get("/user", async (req, res) => {
 
-});
 
 
 // it will throw an error because of constraints
@@ -503,8 +524,29 @@ app.delete("/like_post", async (req, res) => {
 	}
 })
 
+/////////////////////////////
+app.post("/like_comment", async (req, res) => {
+	const {id, userId} = req.body;
+	try {
+		const queryResult = await pool.query("INSERT INTO comment_like (comment_id, user_id) values ($1, $2)", [id, userId]);
+		res.send()
+	} catch(e) {
+		res.send()
+	}
+})
 
-
+app.delete("/like_comment", async (req, res) => {
+	const { id, userId } = req.body;
+	try {
+		const queryResult = await pool.query("DELETE FROM comment_like WHERE comment_id = $1 AND user_id = $2", [id, userId]);
+		// console.log("like deleted");
+		res.status(200).send("success");
+	} catch(e) {
+		console.log(e);
+		res.status(500).send("failed like deletion");
+	}
+})
+//////////////////////////////
 
 
 app.post("/subscription", async (req, res) => {
@@ -534,16 +576,7 @@ app.post("/subscription", async (req, res) => {
 
 
 
-app.post("/like_comment", async (req, res) => {
-	const {comment_id, user_id} = req.body;
-	try {
-		const queryResult = await pool.query("INSERT INTO comment_like (comment_id, user_id) values ($1, $2)", [comment_id, user_id]);
-		res.send()
-	} catch(e) {
-		res.send()
-	}
 
-})
 
 
 

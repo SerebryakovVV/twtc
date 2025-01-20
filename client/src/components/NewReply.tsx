@@ -7,7 +7,9 @@ import { useState, useRef, useEffect } from "react";
 
 // need to check if parentcommentid is null to differentiate between roots and others
 
-export default function NewReply({postID, parentCommentID}:{postID:number | string | undefined, parentCommentID:number | null}) {
+// change any to function
+
+export default function NewReply({postID, parentCommentID, hideReplyWhenSent}:{hideReplyWhenSent:any, postID:number | string | undefined, parentCommentID:number | null}) {
     const [reply, setReply] = useState<string>("");
     const authorID = useSelector((state: RootState) => state.auth.id);
     const replyRef = useRef<HTMLTextAreaElement | null>(null);
@@ -37,6 +39,7 @@ export default function NewReply({postID, parentCommentID}:{postID:number | stri
             });
             console.log('success');
             setReply("")
+            if (hideReplyWhenSent) hideReplyWhenSent(false);
         } catch(e) {
             console.log(e);
         }
