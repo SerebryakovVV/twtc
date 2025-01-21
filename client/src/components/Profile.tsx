@@ -103,7 +103,8 @@ export default function Profile() {
         
         {posts.map((p)=>{
             return(<FeedPost 
-                key={p.id}
+                        // pfp={imgResToObjUrl(p.)}
+                        key={p.id}
                         id={p.id}
                         username={queryUsername as string}
                         timestamp={p.created_at}

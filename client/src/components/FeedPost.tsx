@@ -17,7 +17,8 @@ type FeedPostPropsType = {
     images: any[],  
     likesNum: number, 
     commentsNum: number,
-    isLikedByUser: boolean
+    isLikedByUser: boolean,
+    // pfp:any
 }
 
 

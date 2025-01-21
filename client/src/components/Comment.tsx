@@ -10,10 +10,11 @@ import { RootState } from "../store";
 import { DiVim } from "react-icons/di";
 import { timestampTransform } from "../utils";
 import { useParams } from "react-router-dom";
+import { imgResToObjUrl } from "../utils";
 
 // change the name of the "notRoot"  so it would make sense
 
-export default function Comment({postId, id, notRoot, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass}:{parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, notRoot:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
+export default function Comment({postId, id, notRoot, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass, pfp}:{pfp:any, parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, notRoot:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
 
     const [isReplyActive, setIsReplyActive] = useState<boolean>(false);
     const [isLikedState, setIsLikedState] = useState<boolean>(isLiked);
@@ -82,7 +83,7 @@ export default function Comment({postId, id, notRoot, username, timestamp, text,
         <div className={`${notRoot && "pl-[50px] "} pt-2 border-b border-zinc-300`}>
             <div className="flex mx-2">
                 <div className="flex items-center mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
-                    <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]" />
+                    <img src={pfp ?? "/kitty.png"} className="rounded-full w-[40px] h-[40px]" />
                 </div>
                 <div>
                     <div className="cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
@@ -111,6 +112,7 @@ export default function Comment({postId, id, notRoot, username, timestamp, text,
             }
             {commentReplies.map((c)=>{
                 return(<Comment 
+                    pfp={c.pf_pic && imgResToObjUrl(c.pf_pic.data)}
                             parentCommentIdToPass={parentCommentIdToPass}
                             key={c.id} 
                             postId={postId}

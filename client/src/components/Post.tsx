@@ -68,12 +68,12 @@ export default function Post() {
             try {
                 const response = await fetch("http://localhost:3000/post?id=" + id + "&viewerId=" + userId);
                 const responseJson = await response.json();
-                console.log(responseJson);
+                console.log("post:", responseJson);
                 setText(responseJson[0].content);
                 setUsername(responseJson[0].name);
                 // console.log(responseJson[0].created_at);
                 setTimestamp(timestampTransform(responseJson[0].created_at));
-                setPfp(responseJson[0].pf_pic);
+                setPfp(responseJson[0].pf_pic && imgResToObjUrl(responseJson[0].pf_pic.data));
                 setImages(responseJson[0].images);
                 //
                 setIsLiked(responseJson[0].liked_by_user);
@@ -132,7 +132,7 @@ export default function Post() {
                     <div className="w-full border-b border-zinc-300 ">
                         <div className="flex pl-3 pt-2">
                             <div className="flex items-center mr-2 cursor-pointer" >
-                                <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]" onClick={()=>{navigate("/profile/" + username)}}/>
+                                <img src={pfp ?? "/kitty.png"} className="rounded-full w-[40px] h-[40px]" onClick={()=>{navigate("/profile/" + username)}}/>
                             </div>
                             <div>
                                 <div className="cursor-pointer" onClick={()=>{navigate("/profile/" + username)}}>{username}</div>
@@ -172,6 +172,7 @@ export default function Post() {
             {comments.map((c)=>{
                 return(
                     <Comment 
+                    pfp={c.pf_pic && imgResToObjUrl(c.pf_pic.data)}
                         parentCommentIdToPass={c.id}
                         key={c.id} 
                         postId={id}
