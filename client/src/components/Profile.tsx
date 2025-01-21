@@ -54,6 +54,7 @@ export default function Profile() {
                 const queryResult = await fetch("http://localhost:3000/user_profile?username=" + queryUsername + "&follower_id=" + reduxId);
                 if (!queryResult.ok) throw new Error("Query failed");
                 const queryResultJson = await queryResult.json();
+                console.log("user:", queryResultJson);
                 if (queryResultJson.length === 0) {
                     // add it to the ui
                     setError("User doesn't exist");
