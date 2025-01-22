@@ -604,6 +604,109 @@ app.post("/pfp", upload.single("pfp"), async (req, res) => {
 
 
 
+
+
+
+
+app.get("/liked_posts", async (req, res)=>{
+	const { user_id } = req.query;
+
+	try {
+	  const queryResult = await pool.query(
+		  `SELECT
+			  posts.id,
+			  posts.content,
+			  posts.created_at,
+			  (SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+			  (SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
+			  COALESCE(
+				  JSON_AGG(
+					  JSON_BUILD_OBJECT(
+						  'image_id', post_image.id,
+						  'image', post_image.image,
+						  'position', post_image.position
+					  ) ORDER BY post_image.position
+				  ) FILTER (WHERE post_image.id IS NOT NULL)
+			  , '[]'
+			  ) AS images
+	FROM 
+		posts 
+	JOIN 
+		post_like ON posts.id = post_like.post_id 
+	LEFT JOIN 
+		post_image ON posts.id = post_image.post_id
+	WHERE 
+		post_like.user_id = $1
+	GROUP BY
+		posts.id,
+	    posts.content,
+		posts.created_at
+	ORDER BY
+		posts.created_at desc`, 
+		  [user_id]);
+
+
+		res.status(200).send(queryResult.rows);
+	} catch(e) {
+		console.log(e);
+		res.status(500).send("db failed");
+	}
+})
+
+
+
+app.get("/subscriptions_posts", async (req, res)=>{
+	const { user_id } = req.query;
+
+	try {
+	  const queryResult = await pool.query(
+		  `
+		 SELECT
+			  posts.id,
+			  posts.content,
+			  posts.created_at,
+			  (SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+			  (SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
+			  COALESCE(
+				  JSON_AGG(
+					  JSON_BUILD_OBJECT(
+						  'image_id', post_image.id,
+						  'image', post_image.image,
+						  'position', post_image.position
+					  ) ORDER BY post_image.position
+				  ) FILTER (WHERE post_image.id IS NOT NULL)
+			  , '[]'
+			  ) AS images
+FROM
+	posts 
+JOIN 
+	subscriptions ON posts.author_id = subscriptions.followed_id 
+LEFT JOIN 
+		post_image ON posts.id = post_image.post_id
+WHERE 
+	subscriptions.follower_id = $1
+GROUP BY
+	posts.id,
+    posts.content,
+	posts.created_at
+ORDER BY
+	posts.created_at desc 
+		  `, 
+		  [user_id]);
+
+
+		res.status(200).send(queryResult.rows);
+	} catch(e) {
+		console.log(e);
+		res.status(500).send("db failed");
+	}
+})
+
+
+
+
+
+
 process.on('exit', () => {
     pool.end();
 });
