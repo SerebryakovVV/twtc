@@ -6,6 +6,7 @@ import pg from 'pg';
 import { body, validationResult } from 'express-validator'
 import fs from 'fs';
 import multer from 'multer';
+const cookieParser = require('cookie-parser')
 
 
 const upload = multer({ dest: 'uploads/' });
@@ -13,6 +14,7 @@ const upload = multer({ dest: 'uploads/' });
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 const pool = new pg.Pool({
     user: "my_user",
@@ -203,6 +205,21 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 
 // subscription posts
 // liked posts
+
+
+
+const midTest = (req: any, res: any, next: any) => {
+	console.log(req.cookies);
+	if (req.body.name === "valya") {
+		res.status(500).send("blocked");
+	} else next();
+}
+
+
+app.get("/test", midTest, async (req, res) => {
+	res.status(200).send("success");
+})
+
 
 
 
