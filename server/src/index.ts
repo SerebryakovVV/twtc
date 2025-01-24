@@ -645,7 +645,7 @@ app.get("/liked_posts", async (req, res)=>{
 		posts.created_at desc`, 
 		  [user_id]);
 
-
+		console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
 		console.log(e);
