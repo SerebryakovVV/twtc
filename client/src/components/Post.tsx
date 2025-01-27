@@ -162,7 +162,7 @@ export default function Post() {
 
            
            
-            <NewReply hideReplyWhenSent={null} postID={id} parentCommentID={null}/>
+            <NewReply toRoot={false} replyToName={null} hideReplyWhenSent={null} postID={id} parentCommentID={null}/>
 
 
             
@@ -176,7 +176,7 @@ export default function Post() {
                         key={c.id} 
                         postId={id}
                         id={c.id} 
-                        notRoot={false} 
+                        root={true} 
                         username={c.name} 
                         timestamp={timestampTransform(c.created_at)} 
                         text={c.content} 

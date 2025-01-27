@@ -445,7 +445,9 @@ app.get("/root_comments", async(req, res) => {
 				users.pf_pic,
 				comments.id, 
 				comments.created_at,
-				comments.content;`
+				comments.content
+			ORDER BY comments.created_at DESC
+				;`
 		, [user_id, post_id]);
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
@@ -480,7 +482,7 @@ GROUP BY
 	comments.id, 
 	comments.created_at,
 	comments.content
-			
+			ORDER BY comments.created_at
 			`, [user_id, comment_id]);
 
 			res.status(200).send(queryResponse.rows);
@@ -581,7 +583,7 @@ app.post("/subscription", async (req, res) => {
 
 
 
-
+// change to in memory
 app.post("/pfp", upload.single("pfp"), async (req, res) => {
 	const { id } = req.body;
 	const file = req.file;

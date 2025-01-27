@@ -9,8 +9,8 @@ import { useState, useRef, useEffect } from "react";
 
 // change any to function
 
-export default function NewReply({postID, parentCommentID, hideReplyWhenSent}:{hideReplyWhenSent:any, postID:number | string | undefined, parentCommentID:number | null}) {
-    const [reply, setReply] = useState<string>("");
+export default function NewReply({toRoot, replyToName, postID, parentCommentID, hideReplyWhenSent}:{toRoot:boolean, replyToName:string | null, hideReplyWhenSent:any, postID:number | string | undefined, parentCommentID:number | null}) {
+    const [reply, setReply] = useState<string>(replyToName ? "@" + replyToName + ", " : "");
     const authorID = useSelector((state: RootState) => state.auth.id);
     const replyRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -48,7 +48,8 @@ export default function NewReply({postID, parentCommentID, hideReplyWhenSent}:{h
     }
 
     return(
-        <div className="px-3 py-1">
+        // <div className="px-3 py-1">
+        <div className={`${toRoot && "border-b border-zinc-300 "} px-3 py-1 `}>
             <div className="text-lg">Reply</div>
             <textarea ref={replyRef} value={reply} onChange={handleReplyChange} className="bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none overflow-hidden focus:outline-none text-sm"/>
             <button onClick={handleReplySend}>Send</button>

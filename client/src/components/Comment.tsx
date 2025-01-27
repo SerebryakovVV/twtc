@@ -13,7 +13,7 @@ import { useParams } from "react-router-dom";
 
 // change the name of the "notRoot"  so it would make sense
 
-export default function Comment({postId, id, notRoot, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass}:{parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, notRoot:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
+export default function Comment({postId, id, root, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass}:{parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, root:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
 
     const [isReplyActive, setIsReplyActive] = useState<boolean>(false);
     const [isLikedState, setIsLikedState] = useState<boolean>(isLiked);
@@ -79,7 +79,7 @@ export default function Comment({postId, id, notRoot, username, timestamp, text,
 
     return(
         // <div className={`${notRoot ? "pl-[50px]" : "pl-2" } pr-2 pt-2 border-b border-zinc-300`}>
-        <div className={`${notRoot && "pl-[50px] "} pt-2 border-b border-zinc-300`}>
+        <div className={`${!root && "pl-[30px] "} pt-2 border-b border-zinc-300`}>
             <div className="flex mx-2">
                 <div className="flex items-center mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
                     <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]" />
@@ -96,13 +96,19 @@ export default function Comment({postId, id, notRoot, username, timestamp, text,
             <div className="px-2 py-1">
                 {text}
             </div>
-            <div className={`${showReplies && "border-b border-zinc-300 "} pl-2 flex`}>
+            {/* <div className={`${showReplies && " border-b border-zinc-300 "} pl-2 flex`}> */}
+            <div className={`${showReplies && !isReplyActive ? " border-b border-zinc-300 " : ""} pl-2 flex`}>
                 <span className="pt-[2px]" onClick={handleLike}>{isLikedState ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
                 <span className="text-sm mr-1">{likesCount}</span>
                 <span className="pt-[2px]" onClick={()=>setIsReplyActive(!isReplyActive)}>{isReplyActive ? <IoCloseSharp /> : <FaReply  />}</span>
             </div>
 
-            {isReplyActive && <NewReply hideReplyWhenSent={setIsReplyActive} postID={postId} parentCommentID={parentCommentIdToPass}/>}
+            {isReplyActive && <NewReply 
+                                    toRoot={root}
+                                    replyToName={username} 
+                                    hideReplyWhenSent={setIsReplyActive} 
+                                    postID={postId} 
+                                    parentCommentID={parentCommentIdToPass}/>}
 
             {(!showReplies && replyCount != 0) &&
                 <div className="ml-1 text-sm underline cursor-pointer mb-1" onClick={loadCommentReplies}>
@@ -115,7 +121,7 @@ export default function Comment({postId, id, notRoot, username, timestamp, text,
                             key={c.id} 
                             postId={postId}
                             id={c.id} 
-                            notRoot={true} 
+                            root={false} 
                             username={c.name} 
                             timestamp={timestampTransform(c.created_at)} 
                             text={c.content} 
