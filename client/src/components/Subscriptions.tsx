@@ -5,17 +5,17 @@ import { RootState } from "../store";
 import FeedPost from "./FeedPost";
 
 export default function Subscriptions() {
-    const [posts, setPosts] = useState<any[]>([]);
+    const [subs, setSubs] = useState<any[]>([]);
 
     const userId = useSelector((state: RootState) => state.auth.id);
 
     useEffect(()=>{
 
-        const getSubPosts = async () => {
+        const getSubs = async () => {
             try {
-                const response = await fetch("http://localhost:3000/subscriptions_posts?user_id=" + userId);
+                const response = await fetch("http://localhost:3000/subscriptions?user_id=" + userId);
                 const responseJson = await response.json();
-                setPosts(responseJson);
+                setSubs(responseJson);
                 console.log(responseJson);
             } catch(e) {
                 console.log(e);
@@ -23,25 +23,15 @@ export default function Subscriptions() {
             }
         }
 
-        getSubPosts();
+        getSubs();
     }, [])
     
     
     return(
         <div className="">
-            {posts.map((p)=>{
+            {subs.map((p)=>{
                 return(
-                    <FeedPost 
-                        id={p.id}
-                        commentsNum={p.comments_count}
-                        images={p.images}
-                        isLikedByUser={true} // change this
-                        likesNum={p.likes_count}
-                        text={p.content}
-                        timestamp={p.created_at}
-                        username="fix this"
-                        key={p.id}
-                    />
+                    <div>{p.name}</div>
                 )
             })}
         </div>

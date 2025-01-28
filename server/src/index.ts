@@ -616,6 +616,7 @@ app.get("/liked_posts", async (req, res)=>{
 	try {
 	  const queryResult = await pool.query(
 		  `SELECT
+	users.name, users.pf_pic,
 			  posts.id,
 			  posts.content,
 			  posts.created_at,
@@ -633,6 +634,7 @@ app.get("/liked_posts", async (req, res)=>{
 			  ) AS images
 	FROM 
 		posts 
+	JOIN users on posts.author_id = users.id
 	JOIN 
 		post_like ON posts.id = post_like.post_id 
 	LEFT JOIN 
@@ -642,7 +644,7 @@ app.get("/liked_posts", async (req, res)=>{
 	GROUP BY
 		posts.id,
 	    posts.content,
-		posts.created_at
+		posts.created_at, users.name, users.pf_pic
 	ORDER BY
 		posts.created_at desc`, 
 		  [user_id]);
@@ -663,7 +665,7 @@ app.get("/subscriptions_posts", async (req, res)=>{
 	try {
 	  const queryResult = await pool.query(
 		  `
-		 SELECT
+		SELECT users.name, users.pf_pic,
 			  posts.id,
 			  posts.content,
 			  posts.created_at,
@@ -681,6 +683,7 @@ app.get("/subscriptions_posts", async (req, res)=>{
 			  ) AS images
 FROM
 	posts 
+	JOIN users on posts.author_id = users.id
 JOIN 
 	subscriptions ON posts.author_id = subscriptions.followed_id 
 LEFT JOIN 
@@ -690,9 +693,9 @@ WHERE
 GROUP BY
 	posts.id,
     posts.content,
-	posts.created_at
+	posts.created_at, users.name, users.pf_pic
 ORDER BY
-	posts.created_at desc 
+	posts.created_at desc  
 		  `, 
 		  [user_id]);
 
@@ -704,6 +707,24 @@ ORDER BY
 	}
 })
 
+
+
+app.get("/subscriptions", async (req, res)=>{
+	const { user_id } = req.query;
+
+	try {
+	  const queryResult = await pool.query(
+		  `
+		SELECT users.name, users.pf_pic
+FROM subscriptions JOIN users ON subscriptions.followed_id = users.id WHERE subscriptions.follower_id = $1 ORDER BY users.name 
+		  `, 
+		  [user_id]);
+		res.status(200).send(queryResult.rows);
+	} catch(e) {
+		console.log(e);
+		res.status(500).send("db failed");
+	}
+})
 
 
 

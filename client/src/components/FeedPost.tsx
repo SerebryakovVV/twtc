@@ -18,14 +18,14 @@ type FeedPostPropsType = {
     likesNum: number, 
     commentsNum: number,
     isLikedByUser: boolean,
-    // pfp:any
+    pfp:any
 }
 
 
 
 
 
-export default function FeedPost({id, username, timestamp, text, images, likesNum, commentsNum, isLikedByUser}: FeedPostPropsType) {
+export default function FeedPost({id, username, timestamp, text, images, likesNum, commentsNum, isLikedByUser, pfp}: FeedPostPropsType) {
 
     const [isLiked, setIsLiked] = useState<boolean>(isLikedByUser);
     const [isLikeLoading, setIsLikeLoading] = useState<boolean>(false);
@@ -73,7 +73,7 @@ export default function FeedPost({id, username, timestamp, text, images, likesNu
         <div className="w-full border-b border-zinc-300">
             <div className="flex pl-3 pt-2">
                 <div className="flex items-center mr-2 cursor-pointer" onClick={()=>window.location.reload()}>
-                    <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]"/>
+                    <img src={pfp ?? "/kitty.png"} className="rounded-full w-[40px] h-[40px]"/>
                 </div>
                 <div>
                     <div className="cursor-pointer" onClick={()=>window.location.reload()}>{username}</div>

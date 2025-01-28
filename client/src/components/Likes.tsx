@@ -33,6 +33,7 @@ export default function Likes() {
             {posts.map((p)=>{
                 return(
                     <FeedPost 
+                    pfp={p.pf_pic && imgResToObjUrl(p.pf_pic.data)}
                         id={p.id}
                         commentsNum={p.comments_count}
                         images={p.images}
@@ -40,7 +41,7 @@ export default function Likes() {
                         likesNum={p.likes_count}
                         text={p.content}
                         timestamp={p.created_at}
-                        username="fix this"
+                        username={p.name}
                         key={p.id}
                     />
                 )
