@@ -10,6 +10,7 @@ import { RootState } from "../store";
 import { DiVim } from "react-icons/di";
 import { timestampTransform } from "../utils";
 import { useParams } from "react-router-dom";
+import { imgResToObjUrl } from "../utils";
 
 // change the name of the "notRoot"  so it would make sense
 
@@ -81,7 +82,7 @@ export default function Comment({postId, id, root, username, timestamp, text, is
         <div className={`${!root && "pl-[30px] "} pt-2 border-b border-zinc-300`}>
             <div className="flex mx-2">
                 <div className="flex items-center mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
-                    <img src="/kitty.png" className="rounded-full w-[40px] h-[40px]" />
+                    <img src={pfp ?? "/kitty.png"} className="rounded-full w-[40px] h-[40px]" />
                 </div>
                 <div>
                     <div className="cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
@@ -116,6 +117,7 @@ export default function Comment({postId, id, root, username, timestamp, text, is
             }
             {commentReplies.map((c)=>{
                 return(<Comment 
+                    pfp={c.pf_pic && imgResToObjUrl(c.pf_pic.data)}
                             parentCommentIdToPass={parentCommentIdToPass}
                             key={c.id} 
                             postId={postId}

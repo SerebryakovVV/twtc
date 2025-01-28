@@ -65,9 +65,12 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
 
     return(
         <div className="flex p-2 border-b border-zinc-300">
-            <div className="w-[100px] h-[100px] shrink-0 rounded-md overflow-hidden mr-2">
-                <img className="object-cover object-center w-full h-full" src="/kitty.png" alt="" />
+            <div className="w-[100px] h-[100px] shrink-0 rounded-full overflow-hidden mr-2">
+                <img className="object-cover object-center w-full h-full rounded-md" src={pfp ?? "/kitty.png"} alt="" />
             </div>
+            {/* <div className="w-[100px] h-[100px] overflow-hidden rounded-md">
+                <img className="w-full h-full object-cover" src={pfp ?? "/kitty.png"} alt="" />
+            </div> */}
             <div className="grow">
                 <div 
                 onClick={()=>{console.log(isFollowed, isFollowing)}}
