@@ -13,8 +13,7 @@ import { useParams } from "react-router-dom";
 
 // change the name of the "notRoot"  so it would make sense
 
-export default function Comment({postId, id, root, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass}:{parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, root:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
-
+export default function Comment({postId, id, root, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass, pfp}:{pfp:any, parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, root:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
     const [isReplyActive, setIsReplyActive] = useState<boolean>(false);
     const [isLikedState, setIsLikedState] = useState<boolean>(isLiked);
 
