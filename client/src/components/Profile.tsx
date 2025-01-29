@@ -96,7 +96,7 @@ export default function Profile() {
                 isFollowing={isFollowing}
                 pfp={pfp} 
                 username={queryUsername} 
-                subCount={subCount}
+                subCount={Number(subCount)}
                 postCount={postCount} 
             />
         {reduxUsername === queryUsername ? <NewPost/> : null}

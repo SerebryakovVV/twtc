@@ -551,24 +551,6 @@ app.delete("/like_comment", async (req, res) => {
 //////////////////////////////
 
 
-app.post("/subscription", async (req, res) => {
-	const {followedId, authID, isFollowed} = req.body;
-	// console.log(followedId, authID, isFollowed);
-	try {
-		if (isFollowed) {
-			const queryResult = await pool.query("DELETE FROM subscriptions WHERE follower_id = $1 AND followed_id = $2", [authID, followedId]);
-			res.status(200).send("deleted");
-			return;
-		} else {
-			const queryResult = await pool.query("INSERT INTO subscriptions (follower_id, followed_id) values ($1, $2)", [authID, followedId]);
-			res.status(200).send("added");
-			return;
-		}
-	} catch(e) {
-		console.log(e);
-		res.status(500).send();
-	}
-})
 
 
 
@@ -715,7 +697,7 @@ app.get("/subscriptions", async (req, res)=>{
 	try {
 	  const queryResult = await pool.query(
 		  `
-		SELECT users.name, users.pf_pic
+		SELECT users.name, users.pf_pic, users.id
 FROM subscriptions JOIN users ON subscriptions.followed_id = users.id WHERE subscriptions.follower_id = $1 ORDER BY users.name 
 		  `, 
 		  [user_id]);
@@ -723,6 +705,27 @@ FROM subscriptions JOIN users ON subscriptions.followed_id = users.id WHERE subs
 	} catch(e) {
 		console.log(e);
 		res.status(500).send("db failed");
+	}
+})
+
+
+
+app.post("/subscription", async (req, res) => {
+	const {followedId, authID, isFollowed} = req.body;
+	// console.log(followedId, authID, isFollowed);
+	try {
+		if (isFollowed) {
+			const queryResult = await pool.query("DELETE FROM subscriptions WHERE follower_id = $1 AND followed_id = $2", [authID, followedId]);
+			res.status(200).send("deleted");
+			return;
+		} else {
+			const queryResult = await pool.query("INSERT INTO subscriptions (follower_id, followed_id) values ($1, $2)", [authID, followedId]);
+			res.status(200).send("added");
+			return;
+		}
+	} catch(e) {
+		console.log(e);
+		res.status(500).send();
 	}
 })
 
