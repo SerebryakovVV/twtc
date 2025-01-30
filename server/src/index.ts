@@ -177,7 +177,7 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 		}
 		await client.query("COMMIT");
 	} catch(e) {
-		console.log(e);
+		console.log("post creation error", text, authorID, e);
 		await client.query("ROLLBACK");
 		res.status(500).send("post creation db fail");
 	} finally {
@@ -662,7 +662,12 @@ app.get("/subscriptions_posts", async (req, res)=>{
 					  ) ORDER BY post_image.position
 				  ) FILTER (WHERE post_image.id IS NOT NULL)
 			  , '[]'
-			  ) AS images
+			  ) AS images,
+			   (EXISTS(
+					SELECT 1 
+					FROM post_like pl 
+					WHERE pl.post_id = posts.id AND pl.user_id = $1
+				)) AS liked_by_user
 FROM
 	posts 
 	JOIN users on posts.author_id = users.id
