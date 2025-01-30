@@ -36,7 +36,7 @@ export default function Feed() {
                             id={p.id}
                             commentsNum={p.comments_count}
                             images={p.images}
-                            isLikedByUser={true} // change this
+                            isLikedByUser={p.liked_by_user}
                             likesNum={p.likes_count}
                             text={p.content}
                             timestamp={p.created_at}
