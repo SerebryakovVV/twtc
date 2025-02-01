@@ -84,7 +84,7 @@ app.post("/login",
                 id: userRequesResult.rows[0].id
             });
         } catch(err) {
-            console.log(err);
+            console.log("login error", err);
             res.status(500).send("DB error!");
         } finally {
             client.release();
@@ -135,7 +135,7 @@ app.post("/register",
             const queryResult = await client.query("INSERT INTO users (name, password_hash) values ($1, $2)", [username, hashedPassword]);
             res.status(200).send(queryResult);
         } catch(err) {
-            console.log(err);
+            console.log("register error", err);
             res.status(500).send("DB error, while inserting");
         } finally {
             client.release();
@@ -257,7 +257,7 @@ app.get("/user_posts", async (req, res)=>{
 		// console.log(queryResult.rows);
       	res.status(200).send(queryResult.rows);
   	} catch(e) {
-      	console.log(e);
+      	console.log("get user post error", e);
       	res.status(500).send("db failed");
   	}
 })
@@ -286,7 +286,7 @@ app.get("/user_profile", async (req, res)=>{
 		, [follower_id, username]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get user profile error", e);
 		res.status(500).send('Query failed');
 	}
 })
@@ -386,7 +386,7 @@ app.get("/post", async (req, res) => {
 		console.log("===here===")
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get post error", e);
 		res.status(500).send();
 	}
 })
@@ -407,7 +407,7 @@ app.post("/comment", async (req, res) => {
 		await pool.query("INSERT INTO comments (author_id, post_id, content, parent_comment_id) values ($1, $2, $3, $4)", [authorID, postID, reply, parentCommentID]);
 		res.status(200).send();
 	} catch(e) {
-		console.log(e);
+		console.log("post comment error", e);
 		res.status(500).send("db error on comment add");
 	}
 })
@@ -452,7 +452,7 @@ app.get("/root_comments", async(req, res) => {
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get root comments error", e);
 		res.status(500).send("db error getting comments");
 	}
 });
@@ -487,7 +487,7 @@ GROUP BY
 
 			res.status(200).send(queryResponse.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get comment replies error", e);
 		res.status(500).send();
 	}
 })
@@ -508,7 +508,7 @@ app.post("/like_post", async (req, res) => {
 		// console.log("like added");
 		res.status(200).send("success");
 	} catch(e) {
-		console.log(e);
+		console.log("post like post error", e);
 		res.status(500).send("failed like deletion");
 	}
 })
@@ -521,7 +521,7 @@ app.delete("/like_post", async (req, res) => {
 		// console.log("like deleted");
 		res.status(200).send("success");
 	} catch(e) {
-		console.log(e);
+		console.log("delete like post error", e);
 		res.status(500).send("failed like deletion");
 	}
 })
@@ -634,7 +634,7 @@ app.get("/liked_posts", async (req, res)=>{
 		console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get liked posts error", e);
 		res.status(500).send("db failed");
 	}
 })
@@ -642,7 +642,8 @@ app.get("/liked_posts", async (req, res)=>{
 
 
 app.get("/subscriptions_posts", async (req, res)=>{
-	const { user_id } = req.query;
+	const { user_id, offset } = req.query;
+	console.log(offset);
 
 	try {
 	  const queryResult = await pool.query(
@@ -683,13 +684,14 @@ GROUP BY
 	posts.created_at, users.name, users.pf_pic
 ORDER BY
 	posts.created_at desc  
+	LIMIT 10 OFFSET $2
 		  `, 
-		  [user_id]);
+		  [user_id, offset]);
 
 
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get subscriptions posts error", e);
 		res.status(500).send("db failed");
 	}
 })
@@ -708,7 +710,7 @@ FROM subscriptions JOIN users ON subscriptions.followed_id = users.id WHERE subs
 		  [user_id]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
-		console.log(e);
+		console.log("get subscriptions error", e);
 		res.status(500).send("db failed");
 	}
 })
@@ -729,7 +731,7 @@ app.post("/subscription", async (req, res) => {
 			return;
 		}
 	} catch(e) {
-		console.log(e);
+		console.log("post subscriptions error", e);
 		res.status(500).send();
 	}
 })
