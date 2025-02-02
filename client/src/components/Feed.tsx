@@ -11,10 +11,13 @@ export default function Feed() {
     const [offset, setOffset] = useState(0); // probably only need this one for the rerender
     const [postsAreLeft, setPostsAreLeft] = useState(true);
     const [loading, setLoading] = useState(false);
+
+
     
     const offsetRef = useRef(offset); 
     const postsAreLeftRef = useRef(postsAreLeft);
     const loadingRef = useRef(loading);
+    const initilPostsLoadedRef = useRef(false);
 
 
     ////
@@ -22,58 +25,45 @@ export default function Feed() {
     const userId = useSelector((state: RootState) => state.auth.id);
 
     
-    // const offsetRef = useRef(0);
 
     useEffect(()=>{
         offsetRef.current = offset;
     }, [offset])
 
-    useEffect(()=>{
-        postsAreLeftRef.current = postsAreLeft;
-    }, [postsAreLeft])
-
-    useEffect(()=>{
-        loadingRef.current = loading;
-    }, [loading])
-
 
     const getNextPosts = async () => {
-        
-        // console.log(offset);
-        // setOffset((o)=>o+1)
-
-        // console.log(offsetRef.current);
-        // offsetRef.current += 1;
-        
-        // console.log(loading, postsAreLeft, offset)
         if (loadingRef.current || !postsAreLeftRef.current) return;
         try {
-            // setLoading(true);
             loadingRef.current = true;
             const response = await fetch("http://localhost:3000/subscriptions_posts?user_id=" + userId + "&offset=" + offsetRef.current);
             const responseJson = await response.json();
-            if (responseJson.length == 0) {
-                // setPostsAreLeft(false);
-                postsAreLeftRef.current = false;
-            }
+            if (responseJson.length == 0) postsAreLeftRef.current = false;
             setPosts((p)=>[...p, ...responseJson]);
             console.log(responseJson);
             setOffset((o)=>o+10)
         } catch(e) {
             console.log(e);
         } finally {
-            // setLoading(false);
             loadingRef.current = false;
         }
     }
     
+    const scrollHandler = () => {
+        const {scrollTop, clientHeight, scrollHeight} = document.documentElement;
+        if (scrollTop + clientHeight > scrollHeight - 50 && postsAreLeft && !loading) {
+            getNextPosts();
+        }
+    }
 
     useEffect(()=>{
-        document.addEventListener("mousedown", getNextPosts);
-        return () => window.removeEventListener("mousedown", getNextPosts);
+        document.addEventListener("scroll", scrollHandler);
+        if (!initilPostsLoadedRef.current) {
+            getNextPosts();
+            initilPostsLoadedRef.current = true;
+        }
+        return () => window.removeEventListener("scroll", scrollHandler);
     }, [])
 
-    
     return(
         <div className="">
             {posts.map((p)=>{
