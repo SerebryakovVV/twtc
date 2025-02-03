@@ -6,33 +6,18 @@ import FeedPost from "./FeedPost";
 
 export default function Feed() {
     const [posts, setPosts] = useState<any[]>([]);
-
-    ////
-    const [offset, setOffset] = useState(0); // probably only need this one for the rerender
-    const [postsAreLeft, setPostsAreLeft] = useState(true);
-    const [loading, setLoading] = useState(false);
-
-
-    
+    const [offset, setOffset] = useState(0); 
     const offsetRef = useRef(offset); 
-    const postsAreLeftRef = useRef(postsAreLeft);
-    const loadingRef = useRef(loading);
+    const postsAreLeftRef = useRef(true);
+    const loadingRef = useRef(false);
     const initilPostsLoadedRef = useRef(false);
-
-
-    ////
-    
     const userId = useSelector((state: RootState) => state.auth.id);
-
-    
 
     useEffect(()=>{
         offsetRef.current = offset;
     }, [offset])
 
-
     const getNextPosts = async () => {
-        if (loadingRef.current || !postsAreLeftRef.current) return;
         try {
             loadingRef.current = true;
             const response = await fetch("http://localhost:3000/subscriptions_posts?user_id=" + userId + "&offset=" + offsetRef.current);
@@ -50,7 +35,7 @@ export default function Feed() {
     
     const scrollHandler = () => {
         const {scrollTop, clientHeight, scrollHeight} = document.documentElement;
-        if (scrollTop + clientHeight > scrollHeight - 50 && postsAreLeft && !loading) {
+        if (scrollTop + clientHeight > scrollHeight - 50 && postsAreLeftRef.current && !loadingRef.current) {
             getNextPosts();
         }
     }

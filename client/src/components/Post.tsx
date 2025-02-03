@@ -63,7 +63,6 @@ export default function Post() {
         }
 
 
-        // rewrite /post sql
         const getPost = async () => {
             try {
                 const response = await fetch("http://localhost:3000/post?id=" + id + "&viewerId=" + userId);
@@ -114,13 +113,6 @@ export default function Post() {
         }
     }
 
-    // check if not loading
-
-
-    const getCommentReplies = () => {}
-
-    // if (loading) return null;
-    // if (text === undefined) return null;
 
    
 

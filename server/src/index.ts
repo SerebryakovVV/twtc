@@ -214,8 +214,8 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 // images get duplicated, rewrite counting of likes and comments as subqueries
 
 app.get("/user_posts", async (req, res)=>{
-  	const { id, viewer_id } = req.query;
-	// console.log(id, viewer_id);
+  	const { id, viewer_id, offset } = req.query;
+	console.log("here!!!", id, viewer_id, offset);
   	try {
 		const queryResult = await pool.query(
 			`SELECT
@@ -251,8 +251,12 @@ app.get("/user_posts", async (req, res)=>{
 				posts.content,
 				posts.created_at
 			ORDER BY
-				posts.created_at desc`, 
-			[viewer_id, id]);
+				posts.created_at desc
+				
+				LIMIT 10 OFFSET $3
+
+				`, 
+			[viewer_id, id, offset]);
 
 		// console.log(queryResult.rows);
       	res.status(200).send(queryResult.rows);
@@ -593,7 +597,7 @@ app.post("/pfp", upload.single("pfp"), async (req, res) => {
 
 
 app.get("/liked_posts", async (req, res)=>{
-	const { user_id } = req.query;
+	const { user_id, offset } = req.query;
 
 	try {
 	  const queryResult = await pool.query(
@@ -628,8 +632,12 @@ app.get("/liked_posts", async (req, res)=>{
 	    posts.content,
 		posts.created_at, users.name, users.pf_pic
 	ORDER BY
-		posts.created_at desc`, 
-		  [user_id]);
+		posts.created_at desc
+		
+		LIMIT 10 OFFSET $2
+
+		`, 
+		  [user_id, offset]);
 
 		console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
