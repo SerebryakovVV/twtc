@@ -56,7 +56,7 @@ export default function Likes() {
             getNextPosts();
             initilPostsLoadedRef.current = true;
         }
-        return () => window.removeEventListener("scroll", scrollHandler);
+        return () => document.removeEventListener("scroll", scrollHandler);
     }, [])
     ////
 

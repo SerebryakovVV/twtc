@@ -46,7 +46,7 @@ export default function Feed() {
             getNextPosts();
             initilPostsLoadedRef.current = true;
         }
-        return () => window.removeEventListener("scroll", scrollHandler);
+        return () => document.removeEventListener("scroll", scrollHandler);
     }, [])
 
     return(

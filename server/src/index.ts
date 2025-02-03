@@ -418,7 +418,7 @@ app.post("/comment", async (req, res) => {
 
 // maybe add distinct
 app.get("/root_comments", async(req, res) => {
-	const { post_id, user_id } = req.query; 
+	const { post_id, user_id, offset } = req.query; 
 	console.log(post_id, user_id);
 	try {
 		const queryResult = await pool.query(
@@ -451,8 +451,10 @@ app.get("/root_comments", async(req, res) => {
 				comments.created_at,
 				comments.content
 			ORDER BY comments.created_at DESC
+
+			LIMIT 10 OFFSET $3
 				;`
-		, [user_id, post_id]);
+		, [user_id, post_id, offset]);
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {

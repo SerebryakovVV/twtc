@@ -43,10 +43,6 @@ export default function Profile() {
         userIdRef.current = userId;
     }, [userId])
 
-
-
-
-
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
@@ -65,8 +61,6 @@ export default function Profile() {
         }
     }
 
-  
-
     const scrollHandler = () => {
         const {scrollTop, clientHeight, scrollHeight} = document.documentElement;
         if (scrollTop + clientHeight > scrollHeight - 50 && postsAreLeftRef.current && !loadingRef.current) {
@@ -81,18 +75,8 @@ export default function Profile() {
             getNextPosts();
             initilPostsLoadedRef.current = true;
         }
-        return () => window.removeEventListener("scroll", scrollHandler);
+        return () => document.removeEventListener("scroll", scrollHandler);
     }, [userId])
-
-
-    // useEffect(() => {
-    //     if (!userId) return;
-    //     window.addEventListener("scroll", scrollHandler);
-
-    //     return () => {
-    //         window.removeEventListener("scroll", scrollHandler);
-    //     };
-    // }, [userId]); // Re-attaches only when `userId` changes
 
 
     useEffect(()=>{

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { IoIosHeartEmpty } from "react-icons/io";
 import { IoIosHeart } from "react-icons/io";
 import { FaReply } from "react-icons/fa";
@@ -20,49 +20,80 @@ import { RootState } from "../store";
 
 
 export default function Post() {
-
     // when going from the feed to here, use state inside navigate
     // also check if state empty, so if user gets here from the search bar, the query would be sent
-
     const [text, setText] = useState("");
     const [username, setUsername] = useState("");
     const [timestamp, setTimestamp] = useState<string>("");
     const [images, setImages] = useState([]);
     const [pfp, setPfp] = useState<string | null>();
-    // set likes from the query response
-    const [likesNum, setLikesNum] = useState(123)
+    const [likesNum, setLikesNum] = useState(0)
     const [commentsNum, setCommentsNum] = useState()
     const [comments, setComments] = useState<any[]>([]);
     const [isLikeLoading, setIsLikeLoading] = useState<boolean>(false);
     const userId = useSelector((state: RootState) => state.auth.id);
-
     const [isLiked, setIsLiked] = useState<boolean>(false);
-
-
-
-
-    const [loading, setLoading] = useState(true);
-
     const { id } = useParams();
-
     const navigate = useNavigate();
 
+
+    
+    const [postLoaded, setPostLoaded] = useState(false);
+    const [offset, setOffset] = useState(0); 
+    const offsetRef = useRef(offset); 
+    const commentsAreLeftRef = useRef(true);
+    const loadingRef = useRef(false);
+    const initilCommentsLoadedRef = useRef(false);
+
+
     useEffect(()=>{
+        offsetRef.current = offset;
+    }, [offset])
 
-        const getRootComments = async () => {
-            try {
-                const response = await fetch("http://localhost:3000/root_comments?post_id=" + id + "&user_id=" + userId);
-                // const response = await fetch("http://localhost:3000/root_comments?post_id=" + id);
-                const responseJson = await response.json();
-                // console.log(responseJson, id);
-                console.log(responseJson);
-                setComments(responseJson);
-            } catch(e) {
-                console.log(e);
-            }
+
+    const scrollHandler = () => {
+        const {scrollTop, clientHeight, scrollHeight} = document.documentElement;
+        if (scrollTop + clientHeight > scrollHeight - 50 && commentsAreLeftRef.current && !loadingRef.current) {
+            getNextRootComments();
         }
+    }
+
+    useEffect(()=>{
+        if (!postLoaded) return;
+        document.addEventListener("scroll", scrollHandler);
+        if (!initilCommentsLoadedRef.current) {
+            getNextRootComments();
+            initilCommentsLoadedRef.current = true;
+        }
+        return () => document.removeEventListener("scroll", scrollHandler);
+    }, [postLoaded])
 
 
+    const getNextRootComments = async () => {
+        try {
+            loadingRef.current = true;
+            const response = await fetch("http://localhost:3000/root_comments?post_id=" + id + "&user_id=" + userId + "&offset=" + offsetRef.current);
+            // const response = await fetch("http://localhost:3000/root_comments?post_id=" + id);
+            const responseJson = await response.json();
+            // console.log(responseJson, id);
+            console.log(responseJson);
+            if (responseJson.length == 0) commentsAreLeftRef.current = false;
+            setComments((c)=>[...c, ...responseJson]);
+            setOffset((o)=>o+10);
+        } catch(e) {
+            console.log(e);
+        } finally {
+            loadingRef.current = false;
+        }
+    }
+    
+
+
+
+
+    
+
+    useEffect(()=>{
         const getPost = async () => {
             try {
                 const response = await fetch("http://localhost:3000/post?id=" + id + "&viewerId=" + userId);
@@ -70,18 +101,15 @@ export default function Post() {
                 console.log("post:", responseJson);
                 setText(responseJson[0].content);
                 setUsername(responseJson[0].name);
-                // console.log(responseJson[0].created_at);
                 setTimestamp(timestampTransform(responseJson[0].created_at));
                 setPfp(responseJson[0].pf_pic && imgResToObjUrl(responseJson[0].pf_pic.data));
                 setImages(responseJson[0].images);
-                //
                 setIsLiked(responseJson[0].liked_by_user);
                 setLikesNum(responseJson[0].likes_count);
-                //
-                setLoading(false);
-                getRootComments();
+            
+                setPostLoaded(true);
+
             } catch(e) {
-                // add error
                 console.log(e);
             }
         }
