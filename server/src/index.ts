@@ -6,13 +6,25 @@ import pg from 'pg';
 import { body, validationResult } from 'express-validator'
 import fs from 'fs';
 import multer from 'multer';
+const cookieParser = require("cookie-parser");
+
+
+// put query strings into different file and then export
 
 
 const upload = multer({ dest: 'uploads/' });
 
 const app = express();
-app.use(cors());
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        credentials: true, 
+		allowedHeaders: ["authorization", "Content-Type"] 
+    })
+);
 app.use(express.json());
+app.use(cookieParser());
+
 
 const pool = new pg.Pool({
     user: "my_user",
@@ -25,10 +37,67 @@ const pool = new pg.Pool({
 
 
 
+// change the expiration time back to 15 minutes
+/////////////////////
+const JWT_ACCESS_SECRET = "accSec";
+const JWT_REFRESH_SECRET = "refSec";
+const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"15s"});
+const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"7d"});
+
+
+
+
+
+const refreshAccessToken = () => {
+
+}
+
+
+
+const validateJwt = (req: Request, res: Response, next: NextFunction) => {
+	const authHeaders = req.headers["authorization"];
+	if (!authHeaders) {
+		res.status(500).send("no auth headers");
+		return;
+	}
+	const accessToken =  Array.isArray(authHeaders) 
+						? authHeaders[0].split(" ")[1] 
+						: authHeaders.split(" ")[1];
+	jwt.verify(accessToken, JWT_ACCESS_SECRET, (err:any, data:any) => {
+		if (err) {
+
+			// try refreshing, send new or redirect to login page
+			const refreshToken = req.cookies.refreshToken;
+			jwt.verify(refreshToken, JWT_REFRESH_SECRET, (e:any, d:any) => {
+				if (e) {
+					console.log("jwterr:", e)
+					res.status(500).send();
+					return;
+				}
+				const newAccessToken = generateAccessJwt({username:d.username, id:d.id});
+				// attach to res, probably
+			})
+
+			
+		}
+		console.log("data:", data);
+		next();
+	})
+	// put the payload into res.body.id or res.id i dont know
+}
+
+
+
+/////////////////////
+// console.log("cookies: ", req.cookies);
+
+
+
+
 // ADD JWT
 // ADD LOGIN AFTER REGISTRATION AND REDIRECT 
 // https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
-app.post("/login",
+app.post("/login", 
     body("username")
         .matches(/^[a-zA-Z0-9]{1,20}$/)
         .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
@@ -58,7 +127,6 @@ app.post("/login",
                 const comparisonResult = await bcrypt.compare(password, userRequesResult.rows[0].password_hash);
                 if (!comparisonResult) {
                     res.status(401).send("Wrong password!");
-					// console.log("wrong password");
                     return;
                 }
             } catch(err) {
@@ -66,23 +134,35 @@ app.post("/login",
                 res.status(500).send("Hash comparison error!");
                 return;
             }
-             // https://chatgpt.com/c/671401fb-7b5c-8008-b457-3db97d2ac1e6
-             // https://dvmhn07.medium.com/jwt-authentication-in-node-js-a-practical-guide-c8ab1b432a49
-            const token = jwt.sign(
-                {
-                    username: userRequesResult.rows[0].name,
-                    id: userRequesResult.rows[0].id
-                }, 
-                "secret", // JWT SECRET
-                {
-                    expiresIn:"15m"
-                }
-            );
-            res.status(200).send({
-                token,
+
+			
+			
+
+			////////////////////////////// THE JWT PART
+			const accessToken = generateAccessJwt({
+				username: userRequesResult.rows[0].name,
+				id: userRequesResult.rows[0].id
+			})
+			const refreshToken = generateRefreshJwt({
+				username: userRequesResult.rows[0].name,
+				id: userRequesResult.rows[0].id
+			})
+			res.cookie("refreshToken", refreshToken, {"httpOnly":true}); // set expiration date
+			res.status(200).send({
+                accessToken,
                 username,
                 id: userRequesResult.rows[0].id
             });
+
+			////////////////////////////////
+
+
+            
+
+
+
+
+
         } catch(err) {
             console.log("login error", err);
             res.status(500).send("DB error!");
@@ -651,59 +731,63 @@ app.get("/liked_posts", async (req, res)=>{
 
 
 
-app.get("/subscriptions_posts", async (req, res)=>{
-	const { user_id, offset } = req.query;
-	console.log(offset);
+app.get("/subscriptions_posts", validateJwt,
+	
+	async (req, res)=>{
+	
+		const { user_id, offset } = req.query;
+	
+		console.log(offset);
 
-	try {
-	  const queryResult = await pool.query(
-		  `
-		SELECT users.name, users.pf_pic,
-			  posts.id,
-			  posts.content,
-			  posts.created_at,
-			  (SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-			  (SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
-			  COALESCE(
-				  JSON_AGG(
-					  JSON_BUILD_OBJECT(
-						  'image_id', post_image.id,
-						  'image', post_image.image,
-						  'position', post_image.position
-					  ) ORDER BY post_image.position
-				  ) FILTER (WHERE post_image.id IS NOT NULL)
-			  , '[]'
-			  ) AS images,
-			   (EXISTS(
-					SELECT 1 
-					FROM post_like pl 
-					WHERE pl.post_id = posts.id AND pl.user_id = $1
-				)) AS liked_by_user
-FROM
-	posts 
-	JOIN users on posts.author_id = users.id
-JOIN 
-	subscriptions ON posts.author_id = subscriptions.followed_id 
-LEFT JOIN 
-		post_image ON posts.id = post_image.post_id
-WHERE 
-	subscriptions.follower_id = $1
-GROUP BY
-	posts.id,
-    posts.content,
-	posts.created_at, users.name, users.pf_pic
-ORDER BY
-	posts.created_at desc  
-	LIMIT 10 OFFSET $2
-		  `, 
-		  [user_id, offset]);
+		try {
+		const queryResult = await pool.query(
+			`
+			SELECT users.name, users.pf_pic,
+				posts.id,
+				posts.content,
+				posts.created_at,
+				(SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+				(SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
+				COALESCE(
+					JSON_AGG(
+						JSON_BUILD_OBJECT(
+							'image_id', post_image.id,
+							'image', post_image.image,
+							'position', post_image.position
+						) ORDER BY post_image.position
+					) FILTER (WHERE post_image.id IS NOT NULL)
+				, '[]'
+				) AS images,
+				(EXISTS(
+						SELECT 1 
+						FROM post_like pl 
+						WHERE pl.post_id = posts.id AND pl.user_id = $1
+					)) AS liked_by_user
+	FROM
+		posts 
+		JOIN users on posts.author_id = users.id
+	JOIN 
+		subscriptions ON posts.author_id = subscriptions.followed_id 
+	LEFT JOIN 
+			post_image ON posts.id = post_image.post_id
+	WHERE 
+		subscriptions.follower_id = $1
+	GROUP BY
+		posts.id,
+		posts.content,
+		posts.created_at, users.name, users.pf_pic
+	ORDER BY
+		posts.created_at desc  
+		LIMIT 10 OFFSET $2
+			`, 
+			[user_id, offset]);
 
 
-		res.status(200).send(queryResult.rows);
-	} catch(e) {
-		console.log("get subscriptions posts error", e);
-		res.status(500).send("db failed");
-	}
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get subscriptions posts error", e);
+			res.status(500).send("db failed");
+		}
 })
 
 

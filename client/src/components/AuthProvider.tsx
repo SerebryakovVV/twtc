@@ -10,10 +10,9 @@ import { ReactNode, useEffect } from 'react';
 export default function AuthProvider({children}:{children:ReactNode}): JSX.Element {
 	const navigate = useNavigate();
   	const authUsername = useSelector((state: RootState) => state.auth.username)
+	// it renders the children first and only after this navigates to the login page, change to layouteffect or something
 	useEffect(()=>{
-		if (!authUsername) {
-			navigate("/login");
-		}}, [authUsername]
-	);
+		if (!authUsername) navigate("/login");
+	}, [authUsername]);
 	return(<>{children}</>)
 }

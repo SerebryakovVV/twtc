@@ -10,8 +10,6 @@ export default function Layout() {
 
 	const authUsername = useSelector((state: RootState) => state.auth.username)
 
-	// to add active tab
-	// https://chatgpt.com/c/674cd218-a64c-8008-9857-b67a21b41ae0
 
 	return (
     	<div className="min-h-screen bg-zinc-100 flex justify-center">
@@ -27,21 +25,3 @@ export default function Layout() {
   	)
 }
 
-// `
-// select 
-// 	coalesce(
-// 		json_agg
-// 		// collecting posts into array
-// 		json_build_object(
-// 		//	building the object of a post
-// 			JSON_AGG
-// 			// images to array
-// 			json_build_object(
-// 				// images
-// 			)
-// 		)
-	
-// 	, []
-// 	) as posts from users left join posts on users.id = posts.author_id left join post_image on posts.id = post_image.post_id where users.id = $1
-
-// `

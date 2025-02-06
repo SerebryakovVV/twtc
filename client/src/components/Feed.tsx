@@ -12,6 +12,7 @@ export default function Feed() {
     const loadingRef = useRef(false);
     const initilPostsLoadedRef = useRef(false);
     const userId = useSelector((state: RootState) => state.auth.id);
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
 
     useEffect(()=>{
         offsetRef.current = offset;
@@ -20,7 +21,11 @@ export default function Feed() {
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
-            const response = await fetch("http://localhost:3000/subscriptions_posts?user_id=" + userId + "&offset=" + offsetRef.current);
+            console.log("accessToken:", accessToken);
+            const response = await fetch(
+                "http://localhost:3000/subscriptions_posts?user_id=" + userId + "&offset=" + offsetRef.current,
+                {credentials:"include", headers:{"authorization":"Bearer " + accessToken}}
+            );
             const responseJson = await response.json();
             if (responseJson.length == 0) postsAreLeftRef.current = false;
             setPosts((p)=>[...p, ...responseJson]);

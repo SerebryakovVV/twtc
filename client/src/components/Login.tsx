@@ -1,11 +1,10 @@
 import { useState } from "react";
 import ErrorMessage from "./ErrorMessage";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
-import {set, setID} from '../features/auth/authSlice'
+import { setUsernameRedux, setIdRedux, setJwtRedux } from '../features/auth/authSlice'
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Link } from "react-router-dom";
-
 
 type validationErrorType = "Password too short" | "Username field is empty";
 type AuthErrorType = "User not found" | "Wrong password" | "Server error";
@@ -38,24 +37,18 @@ export default function Login() {
 			setPasswordError("Password too short");
 			setPassword("");
 		}
-		
 		if (username.length < 1 || password.length < 6) return;
-		
-		
-		
-		console.log("passed the validation");
 		fetchLogin();
 	}
 
-
-		
 	const fetchLogin = async (): Promise<void> => {
 		try {
 			console.log("start");
 			const response = await fetch("http://localhost:3000/login", {
 				method:"POST",
+				credentials: "include",
 				headers: {
-					'Content-Type': 'application/json' // Specify that you're sending JSON
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					username,
@@ -64,30 +57,14 @@ export default function Login() {
 			});
 			if (!response.ok) throw Error("Fetch error");
 			const resultJSON = await response.json();
-			console.log("passed the auth");
-			console.log(resultJSON);
-
-	
-			///////////////////////////////////
-			dispatch(set(resultJSON.username));
-			dispatch(setID(resultJSON.id));
+			dispatch(setUsernameRedux(resultJSON.username));
+			dispatch(setIdRedux(resultJSON.id));
+			dispatch(setJwtRedux(resultJSON.accessToken))
 			navigate("/");
-			///////////////////////////////////
-	
 		} catch (err) {
 			console.log("its so over ", err);
 		}
-
-
-
 	}
-
-// const data = await response.json(); // Parse the response as JSON
-// console.log(data); // Use the fetched data
-
-
-
-
 
   	return (
 		<div className="w-screen h-screen bg-zinc-100 flex justify-center items-center">

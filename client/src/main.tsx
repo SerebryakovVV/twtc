@@ -18,8 +18,8 @@ import Likes from './components/Likes.tsx'
 const router = createBrowserRouter([
 	{
 		path:"/",
-		// element: <AuthProvider><Layout/></AuthProvider>,
-		element: <Layout/>,
+		element: <AuthProvider><Layout/></AuthProvider>,
+		// element: <Layout/>,
 		children: [
 			{index: true, element:<Feed/>},
 			{path: "profile/:queryUsername", element:<Profile/>},
