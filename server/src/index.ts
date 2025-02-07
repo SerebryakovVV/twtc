@@ -223,19 +223,15 @@ app.post("/register",
 })
 
 
-
 // multer and images https://chatgpt.com/c/67422857-082c-8008-8782-0c68431e4d7a
 // change to async file read
 // change to for ... of ... loop https://chatgpt.com/c/674230a0-71d4-8008-acd5-f4bd0e2721ad
 // I DONT NEED TO USE UPLOAD FOLDER, USE MEMORY, REWRITE EVERYTHING
 // RECONFIGURE THE MULTER, REWRITE PFP ENDPOINT TO USE MEMORY
 app.post("/post", upload.array('images'), async (req, res)=>{
-	// validation here
     const { text, authorID } = req.body;
 	let images: Express.Multer.File[] = [];
 	let bufferArray: Buffer[] = [];
-	// console.log(req.files);
-	
 	if (req.files && req.files.length !== 0) {
 		images = req.files as Express.Multer.File[];
 		for (const image of images) {
@@ -244,8 +240,6 @@ app.post("/post", upload.array('images'), async (req, res)=>{
         }
 	}
 	const client = await pool.connect();
-	// console.log(bufferArray);
-	// console.log(bufferArray.entries());
 	try {
 		await client.query("BEGIN");
 		const postInsertResult = await client.query(sqlStrings.addPostBase, [authorID, text]);
@@ -270,37 +264,16 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 				}
 			}
 		}
-		await client.release();
+		client.release();
 	}   
 })
 // https://chatgpt.com/c/6733afd6-4cd8-8008-8f87-0b721e199f0f
 
 
-
-
-
-
-
-// subscription posts
-// liked posts
-
-
-
-
-
-
-
-
-// images get duplicated, rewrite counting of likes and comments as subqueries
-
 app.get("/user_posts", async (req, res)=>{
   	const { id, viewer_id, offset } = req.query;
-	console.log("here!!!", id, viewer_id, offset);
   	try {
-		const queryResult = await pool.query(
-			sqlStrings.getUserPosts, 
-			[viewer_id, id, offset]);
-
+		const queryResult = await pool.query(sqlStrings.getUserPosts, [viewer_id, id, offset]);
       	res.status(200).send(queryResult.rows);
   	} catch(e) {
       	console.log("get user post error", e);
@@ -312,9 +285,7 @@ app.get("/user_posts", async (req, res)=>{
 app.get("/user_profile", async (req, res)=>{
 	const { follower_id, username } = req.query;
 	try {
-		const queryResult = await pool.query(
-			sqlStrings.getUserProfile
-		, [follower_id, username]);
+		const queryResult = await pool.query(sqlStrings.getUserProfile, [follower_id, username]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
 		console.log("get user profile error", e);
@@ -323,61 +294,13 @@ app.get("/user_profile", async (req, res)=>{
 })
 
 
-
-
-
 // ADD USERNAME AND USER PROFILE PICTURE
 // get rid of id, probably
 // ADD THE NUMBER OF LIKES AND IF THE USER QUERYING HAS ALREADY LIKED IT
 app.get("/post", async (req, res) => {
 	const { id, viewerId } = req.query;
- 	// console.log(id);
 	try {
-		const queryResult = await pool.query(
-			sqlStrings.getPost
-				, [id, viewerId]);
-
-		// old one
-		// const queryResult = await pool.query(
-		// 	`SELECT 
-		// 		author_id, 
-		// 		content, 
-		// 		created_at, 
-		// 		users.name,
-		// 		users.pf_pic,
-		// 		coalesce(
-		// 			json_agg(
-		// 				json_build_object(
-		// 					'id', post_image.id,
-		// 					'image', image
-		// 				) ORDER BY position
-		// 			) FILTER(WHERE post_image.id IS NOT NULL), '[]'
-		// 		) as images
-		// 	FROM 
-		// 		posts 
-		// 	LEFT JOIN 
-		// 		post_image
-		// 	ON post_image.post_id = posts.id
-		// 	LEFT JOIN 
-		// 		users
-		// 	ON users.id = author_id
-		// 	WHERE 
-		// 		posts.id = $1
-		// 	GROUP BY
-		// 		author_id,
-		// 		content,
-		// 		created_at,
-		// 		users.name,
-		// 		users.pf_pic
-		// 	`
-		// , [id]);
-		// old one
-
-
-
-		console.log("===here===")
-		console.log(queryResult.rows);
-		console.log("===here===")
+		const queryResult = await pool.query(sqlStrings.getPost, [id, viewerId]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
 		console.log("get post error", e);
@@ -386,17 +309,8 @@ app.get("/post", async (req, res) => {
 })
 
 
-
-
-
-
-
-
-
-
 app.post("/comment", async (req, res) => {
 	const { authorID, postID, reply, parentCommentID } = req.body;
-  	// console.log(authorID, postID, reply, parentCommentID);
 	try {
 		await pool.query(sqlStrings.addComment, [authorID, postID, reply, parentCommentID]);
 		res.status(200).send();
@@ -406,15 +320,12 @@ app.post("/comment", async (req, res) => {
 	}
 })
 
+
 // maybe add distinct
 app.get("/root_comments", async(req, res) => {
 	const { post_id, user_id, offset } = req.query; 
-	console.log(post_id, user_id);
 	try {
-		const queryResult = await pool.query(
-			sqlStrings.getRootComments
-		, [user_id, post_id, offset]);
-		// console.log(queryResult.rows);
+		const queryResult = await pool.query(sqlStrings.getRootComments, [user_id, post_id, offset]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
 		console.log("get root comments error", e);
@@ -423,25 +334,17 @@ app.get("/root_comments", async(req, res) => {
 });
 
 
-
 // if i send text in 500 response, frontend needs to check if response.ok, or parsing breaks
 app.get("/comment_replies", async (req, res) => {
 	const { comment_id, user_id } = req.query;
 	try {
 		const queryResponse = await pool.query(sqlStrings.getCommentReplies, [user_id, comment_id]);
-
-			res.status(200).send(queryResponse.rows);
+		res.status(200).send(queryResponse.rows);
 	} catch(e) {
 		console.log("get comment replies error", e);
 		res.status(500).send();
 	}
 })
-
-
-
-
-
-
 
 
 // it will throw an error because of constraints
@@ -450,7 +353,6 @@ app.post("/like_post", async (req, res) => {
 	const {id, userId} = req.body;
 	try {
 		const queryResult = await pool.query(sqlStrings.likePost, [id, userId]);
-		// console.log("like added");
 		res.status(200).send("success");
 	} catch(e) {
 		console.log("post like post error", e);
@@ -463,7 +365,6 @@ app.delete("/like_post", async (req, res) => {
 	const { id, userId } = req.body;
 	try {
 		const queryResult = await pool.query(sqlStrings.unlikePost, [id, userId]);
-		// console.log("like deleted");
 		res.status(200).send("success");
 	} catch(e) {
 		console.log("delete like post error", e);
@@ -471,43 +372,29 @@ app.delete("/like_post", async (req, res) => {
 	}
 })
 
-/////////////////////////////
+
 app.post("/like_comment", async (req, res) => {
 	const {id, userId} = req.body;
 	try {
 		const queryResult = await pool.query(sqlStrings.likeComment, [id, userId]);
-		res.send()
+		res.status(200).send("success");
 	} catch(e) {
-		res.send()
+		console.log(e);
+		res.status(500).send("failed comment like deletion");
 	}
 })
+
 
 app.delete("/like_comment", async (req, res) => {
 	const { id, userId } = req.body;
 	try {
 		const queryResult = await pool.query(sqlStrings.unlikeComment, [id, userId]);
-		// console.log("like deleted");
 		res.status(200).send("success");
 	} catch(e) {
 		console.log(e);
 		res.status(500).send("failed like deletion");
 	}
 })
-//////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // change to in memory
@@ -518,34 +405,20 @@ app.post("/pfp", upload.single("pfp"), async (req, res) => {
 	const buffer = await fs.promises.readFile(file.path);
 	try {
 		const queryResult = await pool.query(sqlStrings.addPfp, [buffer, id]);
-		console.log("pfp added")
 		res.status(200).send();
 	} catch(e) {
 		console.log(e);
 		res.status(500).send();
 	} finally {
-		// this can error btw
-		await fs.promises.unlink(file.path)
+		await fs.promises.unlink(file.path)		// this can error btw
 	}
 })
 
 
-
-
-
-
-
-
-
 app.get("/liked_posts", async (req, res)=>{
 	const { user_id, offset } = req.query;
-
 	try {
-	  const queryResult = await pool.query(
-		sqlStrings.getLikedPosts, 
-		  [user_id, offset]);
-
-		console.log(queryResult.rows);
+	  	const queryResult = await pool.query(sqlStrings.getLikedPosts, [user_id, offset]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
 		console.log("get liked posts error", e);
@@ -554,21 +427,13 @@ app.get("/liked_posts", async (req, res)=>{
 })
 
 
-
-app.get("/subscriptions_posts", validateJwt,
-	
+app.get(
+	"/subscriptions_posts", 
+	validateJwt,
 	async (req, res)=>{
-	
 		const { user_id, offset } = req.query;
-	
-		console.log(offset);
-
 		try {
-		const queryResult = await pool.query(
-			sqlStrings.getSubPosts, 
-			[user_id, offset]);
-
-
+			const queryResult = await pool.query(sqlStrings.getSubPosts, [user_id, offset]);
 			res.status(200).send(queryResult.rows);
 		} catch(e) {
 			console.log("get subscriptions posts error", e);
@@ -577,14 +442,10 @@ app.get("/subscriptions_posts", validateJwt,
 })
 
 
-
 app.get("/subscriptions", async (req, res)=>{
 	const { user_id } = req.query;
-
 	try {
-	  const queryResult = await pool.query(
-		sqlStrings.getSubscriptions, 
-		  [user_id]);
+	  const queryResult = await pool.query(sqlStrings.getSubscriptions, [user_id]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
 		console.log("get subscriptions error", e);
@@ -593,19 +454,15 @@ app.get("/subscriptions", async (req, res)=>{
 })
 
 
-
 app.post("/subscription", async (req, res) => {
 	const {followedId, authID, isFollowed} = req.body;
-	// console.log(followedId, authID, isFollowed);
 	try {
 		if (isFollowed) {
 			const queryResult = await pool.query(sqlStrings.unsubscribe, [authID, followedId]);
 			res.status(200).send("deleted");
-			return;
 		} else {
 			const queryResult = await pool.query(sqlStrings.subscribe, [authID, followedId]);
 			res.status(200).send("added");
-			return;
 		}
 	} catch(e) {
 		console.log("post subscriptions error", e);
@@ -614,12 +471,10 @@ app.post("/subscription", async (req, res) => {
 })
 
 
-
-
-
 process.on('exit', () => {
     pool.end();
 });
+
 
 app.listen(3000, ()=>console.log("working"));
 
