@@ -7,7 +7,7 @@ import { body, validationResult } from 'express-validator'
 import fs from 'fs';
 import multer from 'multer';
 const cookieParser = require("cookie-parser");
-
+import * as sqlStrings from "./sqlStrings";
 
 // put query strings into different file and then export
 
@@ -118,7 +118,7 @@ app.post("/login",
         const client = await pool.connect();
         let userRequesResult;
         try {
-            userRequesResult = await client.query("SELECT * FROM users WHERE name = $1", [username]);
+            userRequesResult = await client.query(sqlStrings.getUser, [username]);
             if (userRequesResult.rows.length === 0) {
                 res.status(404).send("User not found!");
                 return;
@@ -193,7 +193,7 @@ app.post("/register",
         const client = await pool.connect();
         try {
             try {
-                const userExists = await client.query("SELECT 1 FROM users WHERE name = $1", [username]);
+                const userExists = await client.query(sqlStrings.checkUserExists, [username]);
                 if (userExists.rows.length !== 0) {
                     res.status(409).send("User already exists!");
                     return;
@@ -212,7 +212,7 @@ app.post("/register",
                 res.status(500).send("Hashing error");
                 return;
             }
-            const queryResult = await client.query("INSERT INTO users (name, password_hash) values ($1, $2)", [username, hashedPassword]);
+            const queryResult = await client.query(sqlStrings.addUser, [username, hashedPassword]);
             res.status(200).send(queryResult);
         } catch(err) {
             console.log("register error", err);
@@ -248,11 +248,11 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 	// console.log(bufferArray.entries());
 	try {
 		await client.query("BEGIN");
-		const postInsertResult = await client.query("INSERT INTO posts (author_id, content) values ($1, $2) RETURNING id", [authorID, text]);
+		const postInsertResult = await client.query(sqlStrings.addPostBase, [authorID, text]);
 		const postID = postInsertResult.rows[0].id;
 		if (bufferArray.length !== 0) {
 			for (const [index, image] of bufferArray.entries()) {
-				await client.query("INSERT INTO post_image (post_id, image, position) values ($1, $2, $3)", [postID, image, index]);
+				await client.query(sqlStrings.addPostImg, [postID, image, index]);
 			}
 		}
 		await client.query("COMMIT");
@@ -298,47 +298,9 @@ app.get("/user_posts", async (req, res)=>{
 	console.log("here!!!", id, viewer_id, offset);
   	try {
 		const queryResult = await pool.query(
-			`SELECT
-				posts.id,
-				posts.content,
-				posts.created_at,
-				(SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-				(SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
-				EXISTS (
-					SELECT 1 
-					FROM post_like 
-					WHERE post_like.post_id = posts.id 
-					AND post_like.user_id = $1
-				) AS liked_by_user,
-				COALESCE(
-					JSON_AGG(
-						JSON_BUILD_OBJECT(
-							'image_id', post_image.id,
-							'image', post_image.image,
-							'position', post_image.position
-						) ORDER BY post_image.position
-					) FILTER (WHERE post_image.id IS NOT NULL)
-				, '[]'
-				) AS images
-			FROM
-				posts
-			LEFT JOIN
-				post_image ON posts.id = post_image.post_id
-			WHERE
-				posts.author_id = $2
-			GROUP BY
-				posts.id,
-				posts.content,
-				posts.created_at
-			ORDER BY
-				posts.created_at desc
-				
-				LIMIT 10 OFFSET $3
-
-				`, 
+			sqlStrings.getUserPosts, 
 			[viewer_id, id, offset]);
 
-		// console.log(queryResult.rows);
       	res.status(200).send(queryResult.rows);
   	} catch(e) {
       	console.log("get user post error", e);
@@ -351,22 +313,7 @@ app.get("/user_profile", async (req, res)=>{
 	const { follower_id, username } = req.query;
 	try {
 		const queryResult = await pool.query(
-			`SELECT 
-				users.id, 
-				users.pf_pic,
-				COUNT(DISTINCT posts.id) as post_count,
-				COUNT(DISTINCT subscriptions.id) as sub_count,
-				EXISTS(
-					SELECT 1 FROM subscriptions where follower_id = $1 and followed_id = users.id
-				) as is_following
-			FROM 
-				users 
-			LEFT JOIN 
-				posts on users.id = posts.author_id
-			LEFT JOIN
-				subscriptions on users.id = subscriptions.followed_id
-			WHERE users.name = $2
-			GROUP BY users.id;`
+			sqlStrings.getUserProfile
 		, [follower_id, username]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
@@ -387,44 +334,7 @@ app.get("/post", async (req, res) => {
  	// console.log(id);
 	try {
 		const queryResult = await pool.query(
-			`SELECT 
-				author_id, 
-				content, 
-				created_at, 
-				users.name,
-				users.pf_pic,
-				EXISTS (
-					SELECT 1 
-					FROM post_like 
-					WHERE post_like.post_id = posts.id 
-					AND post_like.user_id = $2
-				) AS liked_by_user,
-				(SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
-				coalesce(
-					json_agg(
-						json_build_object(
-							'id', post_image.id,
-							'image', image
-						) ORDER BY position
-					) FILTER(WHERE post_image.id IS NOT NULL), '[]'
-				) as images
-			FROM 
-				posts 
-			LEFT JOIN 
-				post_image
-			ON post_image.post_id = posts.id
-			LEFT JOIN 
-				users
-			ON users.id = author_id
-			WHERE 
-				posts.id = $1
-			GROUP BY
-				author_id,
-				content,
-				created_at,
-				users.name,
-				users.pf_pic,
-				posts.id`
+			sqlStrings.getPost
 				, [id, viewerId]);
 
 		// old one
@@ -488,7 +398,7 @@ app.post("/comment", async (req, res) => {
 	const { authorID, postID, reply, parentCommentID } = req.body;
   	// console.log(authorID, postID, reply, parentCommentID);
 	try {
-		await pool.query("INSERT INTO comments (author_id, post_id, content, parent_comment_id) values ($1, $2, $3, $4)", [authorID, postID, reply, parentCommentID]);
+		await pool.query(sqlStrings.addComment, [authorID, postID, reply, parentCommentID]);
 		res.status(200).send();
 	} catch(e) {
 		console.log("post comment error", e);
@@ -502,38 +412,7 @@ app.get("/root_comments", async(req, res) => {
 	console.log(post_id, user_id);
 	try {
 		const queryResult = await pool.query(
-			`SELECT 
-				users.name,
-				users.pf_pic,
-				comments.id, 
-				comments.created_at,
-				comments.content,
-				(SELECT 
-					COUNT(*) 
-					FROM comments c 
-					WHERE c.parent_comment_id = comments.id
-				) AS reply_num,
-				(EXISTS(
-					SELECT 1 
-					FROM comment_like cl 
-					WHERE cl.comment_id = comments.id AND cl.user_id = $1
-				)) AS liked_by_user,
-				COUNT(comment_like.id) as likes_num
-			FROM 
-				comments 
-			JOIN posts ON comments.post_id = posts.id
-			JOIN users ON users.id = comments.author_id
-			LEFT JOIN comment_like ON comment_like.comment_id = comments.id
-			WHERE posts.id = $2 AND comments.parent_comment_id IS NULL
-			GROUP BY users.name,
-				users.pf_pic,
-				comments.id, 
-				comments.created_at,
-				comments.content
-			ORDER BY comments.created_at DESC
-
-			LIMIT 10 OFFSET $3
-				;`
+			sqlStrings.getRootComments
 		, [user_id, post_id, offset]);
 		// console.log(queryResult.rows);
 		res.status(200).send(queryResult.rows);
@@ -549,27 +428,7 @@ app.get("/root_comments", async(req, res) => {
 app.get("/comment_replies", async (req, res) => {
 	const { comment_id, user_id } = req.query;
 	try {
-		const queryResponse = await pool.query(`
-			
-			SELECT 
-	users.name,
-	users.pf_pic,
-	comments.id, 
-	comments.created_at,
-	comments.content,
-	(EXISTS(SELECT 1 FROM comment_like cl WHERE cl.comment_id = comments.id AND cl.user_id = $1)) AS liked_by_user,
-	COUNT(comment_like.id) AS likes_num
-FROM comments JOIN users ON comments.author_id = users.id
-LEFT JOIN comment_like ON comment_like.comment_id = comments.id
-WHERE comments.parent_comment_id = $2
-GROUP BY
-	users.name,
-	users.pf_pic,
-	comments.id, 
-	comments.created_at,
-	comments.content
-			ORDER BY comments.created_at
-			`, [user_id, comment_id]);
+		const queryResponse = await pool.query(sqlStrings.getCommentReplies, [user_id, comment_id]);
 
 			res.status(200).send(queryResponse.rows);
 	} catch(e) {
@@ -590,7 +449,7 @@ GROUP BY
 app.post("/like_post", async (req, res) => {
 	const {id, userId} = req.body;
 	try {
-		const queryResult = await pool.query("INSERT INTO post_like (post_id, user_id) values ($1, $2)", [id, userId]);
+		const queryResult = await pool.query(sqlStrings.likePost, [id, userId]);
 		// console.log("like added");
 		res.status(200).send("success");
 	} catch(e) {
@@ -603,7 +462,7 @@ app.post("/like_post", async (req, res) => {
 app.delete("/like_post", async (req, res) => {
 	const { id, userId } = req.body;
 	try {
-		const queryResult = await pool.query("DELETE FROM post_like WHERE post_id = $1 AND user_id = $2", [id, userId]);
+		const queryResult = await pool.query(sqlStrings.unlikePost, [id, userId]);
 		// console.log("like deleted");
 		res.status(200).send("success");
 	} catch(e) {
@@ -616,7 +475,7 @@ app.delete("/like_post", async (req, res) => {
 app.post("/like_comment", async (req, res) => {
 	const {id, userId} = req.body;
 	try {
-		const queryResult = await pool.query("INSERT INTO comment_like (comment_id, user_id) values ($1, $2)", [id, userId]);
+		const queryResult = await pool.query(sqlStrings.likeComment, [id, userId]);
 		res.send()
 	} catch(e) {
 		res.send()
@@ -626,7 +485,7 @@ app.post("/like_comment", async (req, res) => {
 app.delete("/like_comment", async (req, res) => {
 	const { id, userId } = req.body;
 	try {
-		const queryResult = await pool.query("DELETE FROM comment_like WHERE comment_id = $1 AND user_id = $2", [id, userId]);
+		const queryResult = await pool.query(sqlStrings.unlikeComment, [id, userId]);
 		// console.log("like deleted");
 		res.status(200).send("success");
 	} catch(e) {
@@ -658,7 +517,7 @@ app.post("/pfp", upload.single("pfp"), async (req, res) => {
 	if (!file) {res.status(400).send(); return;}  
 	const buffer = await fs.promises.readFile(file.path);
 	try {
-		const queryResult = await pool.query("UPDATE users SET pf_pic = $1 WHERE id = $2", [buffer, id]);
+		const queryResult = await pool.query(sqlStrings.addPfp, [buffer, id]);
 		console.log("pfp added")
 		res.status(200).send();
 	} catch(e) {
@@ -683,42 +542,7 @@ app.get("/liked_posts", async (req, res)=>{
 
 	try {
 	  const queryResult = await pool.query(
-		  `SELECT
-	users.name, users.pf_pic,
-			  posts.id,
-			  posts.content,
-			  posts.created_at,
-			  (SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-			  (SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
-			  COALESCE(
-				  JSON_AGG(
-					  JSON_BUILD_OBJECT(
-						  'image_id', post_image.id,
-						  'image', post_image.image,
-						  'position', post_image.position
-					  ) ORDER BY post_image.position
-				  ) FILTER (WHERE post_image.id IS NOT NULL)
-			  , '[]'
-			  ) AS images
-	FROM 
-		posts 
-	JOIN users on posts.author_id = users.id
-	JOIN 
-		post_like ON posts.id = post_like.post_id 
-	LEFT JOIN 
-		post_image ON posts.id = post_image.post_id
-	WHERE 
-		post_like.user_id = $1
-	GROUP BY
-		posts.id,
-	    posts.content,
-		posts.created_at, users.name, users.pf_pic
-	ORDER BY
-		posts.created_at desc
-		
-		LIMIT 10 OFFSET $2
-
-		`, 
+		sqlStrings.getLikedPosts, 
 		  [user_id, offset]);
 
 		console.log(queryResult.rows);
@@ -741,45 +565,7 @@ app.get("/subscriptions_posts", validateJwt,
 
 		try {
 		const queryResult = await pool.query(
-			`
-			SELECT users.name, users.pf_pic,
-				posts.id,
-				posts.content,
-				posts.created_at,
-				(SELECT COUNT(id) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-				(SELECT COUNT(id) FROM post_like WHERE post_like.post_id = posts.id) as likes_count,
-				COALESCE(
-					JSON_AGG(
-						JSON_BUILD_OBJECT(
-							'image_id', post_image.id,
-							'image', post_image.image,
-							'position', post_image.position
-						) ORDER BY post_image.position
-					) FILTER (WHERE post_image.id IS NOT NULL)
-				, '[]'
-				) AS images,
-				(EXISTS(
-						SELECT 1 
-						FROM post_like pl 
-						WHERE pl.post_id = posts.id AND pl.user_id = $1
-					)) AS liked_by_user
-	FROM
-		posts 
-		JOIN users on posts.author_id = users.id
-	JOIN 
-		subscriptions ON posts.author_id = subscriptions.followed_id 
-	LEFT JOIN 
-			post_image ON posts.id = post_image.post_id
-	WHERE 
-		subscriptions.follower_id = $1
-	GROUP BY
-		posts.id,
-		posts.content,
-		posts.created_at, users.name, users.pf_pic
-	ORDER BY
-		posts.created_at desc  
-		LIMIT 10 OFFSET $2
-			`, 
+			sqlStrings.getSubPosts, 
 			[user_id, offset]);
 
 
@@ -797,10 +583,7 @@ app.get("/subscriptions", async (req, res)=>{
 
 	try {
 	  const queryResult = await pool.query(
-		  `
-		SELECT users.name, users.pf_pic, users.id
-FROM subscriptions JOIN users ON subscriptions.followed_id = users.id WHERE subscriptions.follower_id = $1 ORDER BY users.name 
-		  `, 
+		sqlStrings.getSubscriptions, 
 		  [user_id]);
 		res.status(200).send(queryResult.rows);
 	} catch(e) {
@@ -816,11 +599,11 @@ app.post("/subscription", async (req, res) => {
 	// console.log(followedId, authID, isFollowed);
 	try {
 		if (isFollowed) {
-			const queryResult = await pool.query("DELETE FROM subscriptions WHERE follower_id = $1 AND followed_id = $2", [authID, followedId]);
+			const queryResult = await pool.query(sqlStrings.unsubscribe, [authID, followedId]);
 			res.status(200).send("deleted");
 			return;
 		} else {
-			const queryResult = await pool.query("INSERT INTO subscriptions (follower_id, followed_id) values ($1, $2)", [authID, followedId]);
+			const queryResult = await pool.query(sqlStrings.subscribe, [authID, followedId]);
 			res.status(200).send("added");
 			return;
 		}
