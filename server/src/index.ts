@@ -41,7 +41,7 @@ const pool = new pg.Pool({
 /////////////////////
 const JWT_ACCESS_SECRET = "accSec";
 const JWT_REFRESH_SECRET = "refSec";
-const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"15s"});
+const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"125s"});
 const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"7d"});
 
 
