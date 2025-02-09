@@ -31,8 +31,5 @@ export const authSlice = createSlice({
 }) 
 
 
-
-
-
 export const { setUsernameRedux, setIdRedux, setJwtRedux } = authSlice.actions;
 export default authSlice.reducer;

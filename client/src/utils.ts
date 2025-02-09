@@ -1,3 +1,8 @@
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from 'react-redux';
+import { setJwtRedux } from "./features/auth/authSlice";
+
+
 export const imgResToObjUrl = (imgData: string | Array<number>) => {
     let uint8ArrayImg;
     if (typeof imgData === "string") {
@@ -14,7 +19,6 @@ export const imgResToObjUrl = (imgData: string | Array<number>) => {
 }
 
 
-
 export const timestampTransform = (ts: string) => {
     const date = new Date(ts);
     const day = String(date.getDate()).padStart(2, '0');
@@ -23,4 +27,34 @@ export const timestampTransform = (ts: string) => {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
+
+
+export const useJwtFetch = () => {
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    return async (path:any, options:any) => {
+        const response = await fetch(path, options);
+        if (response.ok) return response;
+        console.log(response.status)
+        if (response.status === 401) {
+            console.log("access 1 failed")
+            navigate("/login");
+            throw new Error("failed to authorize");
+        }
+        if (response.status === 403) {
+            const refreshResponse = await fetch("http://localhost:3000/refresh", {credentials:"include"});
+            console.log("start refresh");
+            if (refreshResponse.status === 200) {
+                console.log("refresh good");
+                const newAccessToken = await refreshResponse.text();
+                dispatch(setJwtRedux(newAccessToken))
+                return await fetch(path, {...options, headers:{...options.headers,"authorization":"Bearer " + newAccessToken}});
+            } 
+            console.log("navigate");
+            navigate("/login");
+            throw new Error("failed to refresh");
+        }
+        throw new Error("failed to check access");
+    }
 }

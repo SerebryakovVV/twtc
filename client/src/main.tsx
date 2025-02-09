@@ -13,13 +13,13 @@ import Feed from './components/Feed.tsx'
 import Profile from './components/Profile.tsx'
 import Subscriptions from './components/Subscriptions.tsx'
 import Likes from './components/Likes.tsx'
+import { Navigate } from 'react-router-dom'
 
 
 const router = createBrowserRouter([
 	{
 		path:"/",
 		element: <AuthProvider><Layout/></AuthProvider>,
-		// element: <Layout/>,
 		children: [
 			{index: true, element:<Feed/>},
 			{path: "profile/:queryUsername", element:<Profile/>},
@@ -35,6 +35,10 @@ const router = createBrowserRouter([
 	{
 		path: "register",
 		element: <Register/>
+	},
+	{
+		path: "*",
+		element:<Navigate to="/"/>
 	}
 ]);
 

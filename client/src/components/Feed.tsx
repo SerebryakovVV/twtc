@@ -4,6 +4,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import FeedPost from "./FeedPost";
 
+import { useJwtFetch } from "../utils";
+
 export default function Feed() {
     const [posts, setPosts] = useState<any[]>([]);
     const [offset, setOffset] = useState(0); 
@@ -14,6 +16,8 @@ export default function Feed() {
     const userId = useSelector((state: RootState) => state.auth.id);
     const accessToken = useSelector((state: RootState) => state.auth.jwt);
 
+    const jwtFetch = useJwtFetch();
+
     useEffect(()=>{
         offsetRef.current = offset;
     }, [offset])
@@ -21,11 +25,15 @@ export default function Feed() {
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
-            console.log("accessToken:", accessToken);
-            const response = await fetch(
-                "http://localhost:3000/subscriptions_posts?user_id=" + userId + "&offset=" + offsetRef.current,
+            // console.log("accessToken:", accessToken);
+            
+            // PROTECTED ROUTES?
+            const response = await jwtFetch(
+                "http://localhost:3000/subscriptions_posts?offset=" + offsetRef.current,  // removed the id
                 {credentials:"include", headers:{"authorization":"Bearer " + accessToken}}
             );
+
+            if (!response.ok) throw new Error("failed");
             const responseJson = await response.json();
             if (responseJson.length == 0) postsAreLeftRef.current = false;
             setPosts((p)=>[...p, ...responseJson]);

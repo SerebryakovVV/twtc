@@ -3,16 +3,12 @@ import { RootState } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { ReactNode, useEffect } from 'react';
 
-// https://chatgpt.com/c/6716a293-c924-8008-bd87-197f3992430e
-// https://chatgpt.com/c/6716a997-a5f4-8008-a7a0-6f63d2cd2dc9
 
-
-export default function AuthProvider({children}:{children:ReactNode}): JSX.Element {
+export default function AuthProvider({children}:{children:ReactNode}): JSX.Element | null {
 	const navigate = useNavigate();
-  	const authUsername = useSelector((state: RootState) => state.auth.username)
-	// it renders the children first and only after this navigates to the login page, change to layouteffect or something
+  	const accessToken = useSelector((state: RootState) => state.auth.jwt);
 	useEffect(()=>{
-		if (!authUsername) navigate("/login");
-	}, [authUsername]);
-	return(<>{children}</>)
+		if (!accessToken) navigate("/login");
+	}, [accessToken]);
+	return accessToken ? <>{children}</> : null;
 }

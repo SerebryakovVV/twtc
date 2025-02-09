@@ -9,7 +9,7 @@ import multer from 'multer';
 const cookieParser = require("cookie-parser");
 import * as sqlStrings from "./sqlStrings";
 
-// put query strings into different file and then export
+
 
 
 const upload = multer({ dest: 'uploads/' });
@@ -34,68 +34,70 @@ const pool = new pg.Pool({
     host: "localhost"
 });
 
+interface RequestProtected extends Request {
+	id?: string,
+	username?: string
+}
 
 
 
-// change the expiration time back to 15 minutes
-/////////////////////
 const JWT_ACCESS_SECRET = "accSec";
 const JWT_REFRESH_SECRET = "refSec";
-const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"125s"});
-const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"7d"});
+const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"15m"});
+const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"15d"});
 
 
 
 
 
-const refreshAccessToken = () => {
-
-}
-
-
-
-const validateJwt = (req: Request, res: Response, next: NextFunction) => {
-	const authHeaders = req.headers["authorization"];
-	if (!authHeaders) {
-		res.status(500).send("no auth headers");
+app.get("/refresh", (req, res) => {
+	const refreshToken = req.cookies.refreshToken;
+	if (!refreshToken) {
+		res.status(401).send();
 		return;
 	}
-	const accessToken =  Array.isArray(authHeaders) 
-						? authHeaders[0].split(" ")[1] 
-						: authHeaders.split(" ")[1];
-	jwt.verify(accessToken, JWT_ACCESS_SECRET, (err:any, data:any) => {
-		if (err) {
-
-			// try refreshing, send new or redirect to login page
-			const refreshToken = req.cookies.refreshToken;
-			jwt.verify(refreshToken, JWT_REFRESH_SECRET, (e:any, d:any) => {
-				if (e) {
-					console.log("jwterr:", e)
-					res.status(500).send();
-					return;
-				}
-				const newAccessToken = generateAccessJwt({username:d.username, id:d.id});
-				// attach to res, probably
-			})
-
-			
+	jwt.verify(refreshToken, JWT_REFRESH_SECRET, (e:any, d:any) => {
+		if (e) {
+			res.status(403).send();
+			return;
+		} else {
+			const newAccessToken = generateAccessJwt({username:d.username, id:d.id}); // can be not correct object, error handling needed
+			res.status(200).send(newAccessToken);
+			return;
 		}
-		console.log("data:", data);
-		next();
 	})
-	// put the payload into res.body.id or res.id i dont know
+}) 
+
+
+// need to get the id and name from the token, otherwise everybody would be able to change any data with any token
+// vvv this will check the access on every request and either pass or block, triggering refresh request on the frontend
+const validateJwt = (req: RequestProtected, res: Response, next: NextFunction) => {
+	const authHeader = req.headers["authorization"];
+	if (!authHeader) {
+		res.status(401).send("no auth headers");
+		return;
+	}
+	const accessToken =  Array.isArray(authHeader) 
+						? authHeader[0].split(" ")[1] 
+						: authHeader.split(" ")[1];
+	jwt.verify(accessToken, JWT_ACCESS_SECRET, (err:any, data:any) => {
+		if (err) {  
+			// if (err.name === "TokenExpiredError") // check if error is expired tho
+			res.status(403).send();
+			return;
+		} else {
+			req.id = data.id;
+			req.username = data.username;
+			next();
+		}
+	})
 }
 
 
 
-/////////////////////
-// console.log("cookies: ", req.cookies);
 
 
 
-
-// ADD JWT
-// ADD LOGIN AFTER REGISTRATION AND REDIRECT 
 // https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
 app.post("/login", 
     body("username")
@@ -426,12 +428,14 @@ app.get("/liked_posts", async (req, res)=>{
 	}
 })
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////
 app.get(
 	"/subscriptions_posts", 
 	validateJwt,
-	async (req, res)=>{
-		const { user_id, offset } = req.query;
+	async (req:RequestProtected, res)=>{
+		// const { user_id, offset } = req.query;
+		const user_id = req.id;
+		const { offset } = req.query
 		try {
 			const queryResult = await pool.query(sqlStrings.getSubPosts, [user_id, offset]);
 			res.status(200).send(queryResult.rows);
