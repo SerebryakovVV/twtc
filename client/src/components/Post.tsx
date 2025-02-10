@@ -13,6 +13,7 @@ import Comment from "./Comment";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
+import { useJwtFetch } from "../utils";
 
 // the query for getting all the comment as array of arrays https://chatgpt.com/c/6750a6e8-dda4-8008-941c-576f561606fc
 // also cte, recursive queries and postgres functions
@@ -46,6 +47,15 @@ export default function Post() {
     const initilCommentsLoadedRef = useRef(false);
 
 
+    const jwtFetch = useJwtFetch();
+            const accessToken = useSelector((state: RootState) => state.auth.jwt);
+            const accessTokenRef = useRef(accessToken);
+            useEffect(()=>{
+                accessTokenRef.current = accessToken;
+            }, [accessToken])
+
+
+
     useEffect(()=>{
         offsetRef.current = offset;
     }, [offset])
@@ -72,7 +82,9 @@ export default function Post() {
     const getNextRootComments = async () => {
         try {
             loadingRef.current = true;
-            const response = await fetch("http://localhost:3000/root_comments?post_id=" + id + "&user_id=" + userId + "&offset=" + offsetRef.current);
+            const response = await jwtFetch("http://localhost:3000/root_comments?post_id=" + id + "&offset=" + offsetRef.current,
+                {credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}}
+            );
             // const response = await fetch("http://localhost:3000/root_comments?post_id=" + id);
             const responseJson = await response.json();
             // console.log(responseJson, id);
@@ -96,7 +108,9 @@ export default function Post() {
     useEffect(()=>{
         const getPost = async () => {
             try {
-                const response = await fetch("http://localhost:3000/post?id=" + id + "&viewerId=" + userId);
+                const response = await jwtFetch("http://localhost:3000/post?id=" + id, {
+                    credentials: "include", headers:{"authorization":"Bearer " + accessTokenRef.current}
+                });
                 const responseJson = await response.json();
                 console.log("post:", responseJson);
                 setText(responseJson[0].content);
@@ -123,9 +137,10 @@ export default function Post() {
             setIsLikeLoading(true);
             console.log("one");
             console.log(id, userId);
-            const response = await fetch("http://localhost:3000/like_post", {
+            const response = await jwtFetch("http://localhost:3000/like_post", {
                 method: isLiked ? "DELETE" : "POST",
-                headers:{"Content-Type": "application/json"},
+                credentials: "include",
+                headers:{"Content-Type": "application/json", "authorization":"Bearer " + accessTokenRef.current},
                 body:JSON.stringify({
                     id,
                     userId,

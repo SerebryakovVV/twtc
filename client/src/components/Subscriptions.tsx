@@ -1,22 +1,31 @@
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode, useRef } from "react";
 import { imgResToObjUrl } from "../utils";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import FeedPost from "./FeedPost";
-
+import { useJwtFetch } from "../utils";
 
 import { useNavigate } from "react-router-dom";
 
 export default function Subscriptions() {
     const [subs, setSubs] = useState<any[]>([]);
+    
 
     const userId = useSelector((state: RootState) => state.auth.id);
+
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
 
     useEffect(()=>{
 
         const getSubs = async () => {
             try {
-                const response = await fetch("http://localhost:3000/subscriptions?user_id=" + userId);
+                const response = await jwtFetch("http://localhost:3000/subscriptions", {
+
+                    credentials:"include", 
+                    headers: {"authorization":"Bearer " + accessToken},
+                });
+                if (!response.ok) {throw new Error("error subscription")}
                 const responseJson = await response.json();
                 setSubs(responseJson);
                 console.log(responseJson);
@@ -27,7 +36,7 @@ export default function Subscriptions() {
         }
 
         getSubs();
-    }, [])
+    }, [accessToken])
 
 
     
@@ -51,25 +60,37 @@ function SubscriptionCard({name, id, pfp}) {
     // where is isLoading state
     const [isFollowed, setIsFollowed] = useState(true);
     const navigate = useNavigate();
-    const authID = useSelector((state: RootState) => state.auth.id);
+    const jwtFetch = useJwtFetch()
+    
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // const authID = useSelector((state: RootState) => state.auth.id);
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
+    
+        useEffect(()=>{
+            accessTokenRef.current = accessToken;
+        }, [accessToken])
 
     const handleFollow = async () => {
+        if (isLoading) return;
         try {
-            // console.log(followedId, authID, isFollowed);
-            const response = await fetch("http://localhost:3000/subscription", {
-                method:"POST",
-                headers: { "Content-Type": "application/json" }, 
-                body:JSON.stringify({followedId:id, authID, isFollowed})
+            setIsLoading(true);
+            const response = await jwtFetch("http://localhost:3000/subscription", {
+                method:"POST",  
+                credentials:"include", 
+                headers: {"Content-Type": "application/json", "authorization":"Bearer " + accessTokenRef.current}, 
+                body:JSON.stringify({followedId:id, isFollowed})
             });
-            // i return plain text, no json
-            // const responseJson = await response.json();
-            // console.log(responseJson);
             if (response.ok) {
-
                 setIsFollowed(!isFollowed);
+            } else {
+                throw new Error("subscription error")
             }
         } catch(e) {
             console.log(e);
+        } finally {
+            setIsLoading(false);
         }
     }
 

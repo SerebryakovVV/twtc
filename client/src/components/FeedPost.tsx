@@ -8,6 +8,9 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import { timestampTransform } from "../utils";
+import { useRef } from "react";
+import { useJwtFetch } from "../utils";
+
 
 type FeedPostPropsType = {
     id:number,
@@ -35,6 +38,13 @@ export default function FeedPost({id, username, timestamp, text, images, likesNu
     const [likes, setLikes] = useState<number>(likesNum);
 
 
+    const jwtFetch = useJwtFetch();
+        const accessToken = useSelector((state: RootState) => state.auth.jwt);
+        const accessTokenRef = useRef(accessToken);
+        useEffect(()=>{
+            accessTokenRef.current = accessToken;
+        }, [accessToken])
+
     // useEffect(()=>{
     //     setIsLiked(isLikedByUser);
     // }, [isLikedByUser])
@@ -47,12 +57,12 @@ export default function FeedPost({id, username, timestamp, text, images, likesNu
             setIsLikeLoading(true);
             console.log("one");
             console.log(id, userId);
-            const response = await fetch("http://localhost:3000/like_post", {
+            const response = await jwtFetch("http://localhost:3000/like_post", {
                 method: isLiked ? "DELETE" : "POST",
-                headers:{"Content-Type": "application/json"},
+                credentials: "include",
+                headers:{"Content-Type": "application/json", "authorization":"Bearer " + accessTokenRef.current},
                 body:JSON.stringify({
-                    id,
-                    userId,
+                    id
                 })
             });
             console.log("two");

@@ -3,7 +3,7 @@ import { RootState } from "../store"
 import { useState, useRef, useEffect } from "react";
 
 
-
+import { useJwtFetch } from "../utils";
 
 // need to check if parentcommentid is null to differentiate between roots and others
 
@@ -26,16 +26,24 @@ export default function NewReply({toRoot, replyToName, postID, parentCommentID, 
         setReply(e.target.value);
     }
 
+     const jwtFetch = useJwtFetch();
+            const accessToken = useSelector((state: RootState) => state.auth.jwt);
+            const accessTokenRef = useRef(accessToken);
+            useEffect(()=>{
+                accessTokenRef.current = accessToken;
+            }, [accessToken])
+
     const handleReplySend = async () => {
         console.log(postID, parentCommentID, reply, authorID);
 
         try {
-            const response = await fetch("http://localhost:3000/comment", {
+            const response = await jwtFetch("http://localhost:3000/comment", {
                 method: "POST",
+                credentials:"include",
                 headers: {
-                    'Content-Type': 'application/json' 
+                    'Content-Type': 'application/json' , "authorization":"Bearer " + accessTokenRef.current
                 },
-                body: JSON.stringify({postID, parentCommentID, reply, authorID})
+                body: JSON.stringify({postID, parentCommentID, reply})
             });
             console.log('success');
             setReply("")

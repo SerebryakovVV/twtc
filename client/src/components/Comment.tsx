@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import NewReply from "./NewReply";
 import { IoIosHeart, IoIosHeartEmpty } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
@@ -11,6 +11,8 @@ import { DiVim } from "react-icons/di";
 import { timestampTransform } from "../utils";
 import { useParams } from "react-router-dom";
 import { imgResToObjUrl } from "../utils";
+
+import { useJwtFetch } from "../utils";
 
 // change the name of the "notRoot"  so it would make sense
 
@@ -27,6 +29,10 @@ export default function Comment({postId, id, root, username, timestamp, text, is
 
     const [commentReplies, setCommentReplies] = useState<any[]>([]);
 
+
+    
+
+
     useEffect(()=>{
         setIsLikedState(isLiked);
         console.log(isLiked);
@@ -36,18 +42,26 @@ export default function Comment({postId, id, root, username, timestamp, text, is
 
     const [replies, setReplies] = useState([]);
 
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
+
+
     const handleLike = async () => {
         // setIsLikedState(!isLikedState);
         if (!isLikeLoading) {
             setIsLikeLoading(true);
             console.log("one");
             console.log(id, userId);
-            const response = await fetch("http://localhost:3000/like_comment", {
+            const response = await jwtFetch("http://localhost:3000/like_comment", {
                 method: isLikedState ? "DELETE" : "POST",
-                headers:{"Content-Type": "application/json"},
+                credentials:"include",
+                headers:{"Content-Type": "application/json", "authorization":"Bearer " + accessTokenRef.current},
                 body:JSON.stringify({
-                    id,
-                    userId,
+                    id
                 })
             });
             console.log("two");
@@ -66,7 +80,10 @@ export default function Comment({postId, id, root, username, timestamp, text, is
         setShowReplies(true);
         try {
             console.log(id, userId)
-            const response = await fetch("http://localhost:3000/comment_replies?comment_id=" + id + "&user_id=" + userId);
+            const response = await jwtFetch("http://localhost:3000/comment_replies?comment_id=" + id, {
+                credentials:"include",
+                headers:{"authorization":"Bearer " + accessTokenRef.current}
+            });
             const responseJson = await response.json();
             console.log(responseJson);
             setCommentReplies(responseJson);

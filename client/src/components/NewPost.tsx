@@ -3,6 +3,7 @@ import { useSelector } from "react-redux"
 import { RootState } from "../store"
 import { SlPaperClip } from "react-icons/sl";
 import { BiColor } from "react-icons/bi";
+import { useJwtFetch } from "../utils";
 
 export default function NewPost() {
 
@@ -17,6 +18,12 @@ export default function NewPost() {
 
     const [filesState, setFilesState] = useState<File[] | []>([]);
 
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
 
     useEffect(() => {
         if (textAreaRef.current) {
@@ -33,18 +40,20 @@ export default function NewPost() {
         // check later
         // and rewrite, what the fuck even is this
         // id = authorID || ""
-        if (authorID) {
-            id = authorID;
-        } else {
-            id = ""
-        }
+        // if (authorID) {
+        //     id = authorID;
+        // } else {
+        //     id = ""
+        // }
         const formData = new FormData();
         formData.append('text', formattedText);
-        formData.append('authorID', id);
+        // formData.append('authorID', id);
         filesState.forEach((image) => formData.append('images', image));
         try {
-            const response = fetch("http://localhost:3000/post", {
+            const response = jwtFetch("http://localhost:3000/post", {
 				method:"POST",
+                credentials:"include",
+                headers:{"authorization":"Bearer " + accessTokenRef.current},
 				body: formData
 			});
             console.log(response);

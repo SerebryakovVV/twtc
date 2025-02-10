@@ -22,6 +22,20 @@ export default function Feed() {
         offsetRef.current = offset;
     }, [offset])
 
+
+    /////////////////
+
+    const accessTokenRef = useRef(accessToken);
+
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
+
+
+    ////////////////
+
+
+
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
@@ -30,7 +44,7 @@ export default function Feed() {
             // PROTECTED ROUTES?
             const response = await jwtFetch(
                 "http://localhost:3000/subscriptions_posts?offset=" + offsetRef.current,  // removed the id
-                {credentials:"include", headers:{"authorization":"Bearer " + accessToken}}
+                {credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}}
             );
 
             if (!response.ok) throw new Error("failed");

@@ -43,7 +43,7 @@ interface RequestProtected extends Request {
 
 const JWT_ACCESS_SECRET = "accSec";
 const JWT_REFRESH_SECRET = "refSec";
-const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"15m"});
+const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"10s"});
 const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"15d"});
 
 
@@ -225,13 +225,43 @@ app.post("/register",
 })
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // multer and images https://chatgpt.com/c/67422857-082c-8008-8782-0c68431e4d7a
 // change to async file read
 // change to for ... of ... loop https://chatgpt.com/c/674230a0-71d4-8008-acd5-f4bd0e2721ad
 // I DONT NEED TO USE UPLOAD FOLDER, USE MEMORY, REWRITE EVERYTHING
 // RECONFIGURE THE MULTER, REWRITE PFP ENDPOINT TO USE MEMORY
-app.post("/post", upload.array('images'), async (req, res)=>{
-    const { text, authorID } = req.body;
+app.post("/post", validateJwt, upload.array('images'), async (req: RequestProtected, res)=>{
+    const { text } = req.body;
+	const authorID = req.id;
 	let images: Express.Multer.File[] = [];
 	let bufferArray: Buffer[] = [];
 	if (req.files && req.files.length !== 0) {
@@ -272,8 +302,13 @@ app.post("/post", upload.array('images'), async (req, res)=>{
 // https://chatgpt.com/c/6733afd6-4cd8-8008-8f87-0b721e199f0f
 
 
-app.get("/user_posts", async (req, res)=>{
-  	const { id, viewer_id, offset } = req.query;
+
+
+
+
+app.get("/user_posts", validateJwt, async (req: RequestProtected, res)=>{
+  	const { id, offset } = req.query;
+	const viewer_id = req.id;
   	try {
 		const queryResult = await pool.query(sqlStrings.getUserPosts, [viewer_id, id, offset]);
       	res.status(200).send(queryResult.rows);
@@ -284,8 +319,9 @@ app.get("/user_posts", async (req, res)=>{
 })
 
 
-app.get("/user_profile", async (req, res)=>{
-	const { follower_id, username } = req.query;
+app.get("/user_profile", validateJwt, async (req: RequestProtected, res)=>{
+	const { username } = req.query;
+	const follower_id = req.id;
 	try {
 		const queryResult = await pool.query(sqlStrings.getUserProfile, [follower_id, username]);
 		res.status(200).send(queryResult.rows);
@@ -299,8 +335,9 @@ app.get("/user_profile", async (req, res)=>{
 // ADD USERNAME AND USER PROFILE PICTURE
 // get rid of id, probably
 // ADD THE NUMBER OF LIKES AND IF THE USER QUERYING HAS ALREADY LIKED IT
-app.get("/post", async (req, res) => {
-	const { id, viewerId } = req.query;
+app.get("/post", validateJwt, async (req: RequestProtected, res) => {
+	const { id } = req.query;
+	const viewerId = req.id;
 	try {
 		const queryResult = await pool.query(sqlStrings.getPost, [id, viewerId]);
 		res.status(200).send(queryResult.rows);
@@ -311,8 +348,9 @@ app.get("/post", async (req, res) => {
 })
 
 
-app.post("/comment", async (req, res) => {
-	const { authorID, postID, reply, parentCommentID } = req.body;
+app.post("/comment", validateJwt, async (req: RequestProtected, res) => {
+	const { postID, reply, parentCommentID } = req.body;
+	const authorID = req.id;
 	try {
 		await pool.query(sqlStrings.addComment, [authorID, postID, reply, parentCommentID]);
 		res.status(200).send();
@@ -324,8 +362,9 @@ app.post("/comment", async (req, res) => {
 
 
 // maybe add distinct
-app.get("/root_comments", async(req, res) => {
-	const { post_id, user_id, offset } = req.query; 
+app.get("/root_comments", validateJwt, async(req: RequestProtected, res) => {
+	const { post_id, offset } = req.query; 
+	const user_id = req.id;
 	try {
 		const queryResult = await pool.query(sqlStrings.getRootComments, [user_id, post_id, offset]);
 		res.status(200).send(queryResult.rows);
@@ -337,8 +376,9 @@ app.get("/root_comments", async(req, res) => {
 
 
 // if i send text in 500 response, frontend needs to check if response.ok, or parsing breaks
-app.get("/comment_replies", async (req, res) => {
-	const { comment_id, user_id } = req.query;
+app.get("/comment_replies", validateJwt, async (req: RequestProtected, res) => {
+	const { comment_id } = req.query;
+	const user_id = req.id;
 	try {
 		const queryResponse = await pool.query(sqlStrings.getCommentReplies, [user_id, comment_id]);
 		res.status(200).send(queryResponse.rows);
@@ -349,59 +389,9 @@ app.get("/comment_replies", async (req, res) => {
 })
 
 
-// it will throw an error because of constraints
-// rewrite with body and add an action field
-app.post("/like_post", async (req, res) => {
-	const {id, userId} = req.body;
-	try {
-		const queryResult = await pool.query(sqlStrings.likePost, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log("post like post error", e);
-		res.status(500).send("failed like deletion");
-	}
-})
-
-
-app.delete("/like_post", async (req, res) => {
-	const { id, userId } = req.body;
-	try {
-		const queryResult = await pool.query(sqlStrings.unlikePost, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log("delete like post error", e);
-		res.status(500).send("failed like deletion");
-	}
-})
-
-
-app.post("/like_comment", async (req, res) => {
-	const {id, userId} = req.body;
-	try {
-		const queryResult = await pool.query(sqlStrings.likeComment, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log(e);
-		res.status(500).send("failed comment like deletion");
-	}
-})
-
-
-app.delete("/like_comment", async (req, res) => {
-	const { id, userId } = req.body;
-	try {
-		const queryResult = await pool.query(sqlStrings.unlikeComment, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log(e);
-		res.status(500).send("failed like deletion");
-	}
-})
-
-
 // change to in memory
-app.post("/pfp", upload.single("pfp"), async (req, res) => {
-	const { id } = req.body;
+app.post("/pfp", validateJwt, upload.single("pfp"), async (req: RequestProtected, res) => {
+	const id  = req.id;
 	const file = req.file;
 	if (!file) {res.status(400).send(); return;}  
 	const buffer = await fs.promises.readFile(file.path);
@@ -417,8 +407,92 @@ app.post("/pfp", upload.single("pfp"), async (req, res) => {
 })
 
 
-app.get("/liked_posts", async (req, res)=>{
-	const { user_id, offset } = req.query;
+
+
+
+
+/////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+// like unlike post is used in two files
+
+
+// it will throw an error because of constraints
+// rewrite with body and add an action field
+app.post("/like_post", validateJwt, async (req: RequestProtected, res) => {
+	const { id } = req.body;
+	const userId = req.id;
+	try {
+		const queryResult = await pool.query(sqlStrings.likePost, [id, userId]);
+		res.status(200).send("success");
+	} catch(e) {
+		console.log("post like post error", e);
+		res.status(500).send("failed like deletion");
+	}
+})
+
+
+app.delete("/like_post", validateJwt, async (req: RequestProtected, res) => {
+	const { id } = req.body;
+	const userId = req.id;
+	try {
+		const queryResult = await pool.query(sqlStrings.unlikePost, [id, userId]);
+		res.status(200).send("success");
+	} catch(e) {
+		console.log("delete like post error", e);
+		res.status(500).send("failed like deletion");
+	}
+})
+
+
+app.post("/like_comment", validateJwt, async (req: RequestProtected, res) => {
+	const { id } = req.body;
+	const userId = req.id;
+	try {
+		const queryResult = await pool.query(sqlStrings.likeComment, [id, userId]);
+		res.status(200).send("success");
+	} catch(e) {
+		console.log(e);
+		res.status(500).send("failed comment like deletion");
+	}
+})
+
+
+app.delete("/like_comment", validateJwt, async (req: RequestProtected, res) => {
+	const { id } = req.body;
+	const userId = req.id;
+	try {
+		const queryResult = await pool.query(sqlStrings.unlikeComment, [id, userId]);
+		res.status(200).send("success");
+	} catch(e) {
+		console.log(e);
+		res.status(500).send("failed like deletion");
+	}
+})
+
+
+
+
+
+
+
+
+
+
+
+
+app.get("/liked_posts", validateJwt, async (req: RequestProtected, res)=>{
+	const { offset } = req.query;
+	const user_id = req.id;
 	try {
 	  	const queryResult = await pool.query(sqlStrings.getLikedPosts, [user_id, offset]);
 		res.status(200).send(queryResult.rows);
@@ -428,12 +502,11 @@ app.get("/liked_posts", async (req, res)=>{
 	}
 })
 
-///////////////////////////////////////////////////////////////////////////////////////////////
+
 app.get(
 	"/subscriptions_posts", 
 	validateJwt,
 	async (req:RequestProtected, res)=>{
-		// const { user_id, offset } = req.query;
 		const user_id = req.id;
 		const { offset } = req.query
 		try {
@@ -446,8 +519,11 @@ app.get(
 })
 
 
-app.get("/subscriptions", async (req, res)=>{
-	const { user_id } = req.query;
+app.get(
+	"/subscriptions", 
+	validateJwt,
+	async (req: RequestProtected, res)=>{
+	const user_id = req.id;
 	try {
 	  const queryResult = await pool.query(sqlStrings.getSubscriptions, [user_id]);
 		res.status(200).send(queryResult.rows);
@@ -458,19 +534,23 @@ app.get("/subscriptions", async (req, res)=>{
 })
 
 
-app.post("/subscription", async (req, res) => {
-	const {followedId, authID, isFollowed} = req.body;
-	try {
-		if (isFollowed) {
-			const queryResult = await pool.query(sqlStrings.unsubscribe, [authID, followedId]);
-			res.status(200).send("deleted");
-		} else {
-			const queryResult = await pool.query(sqlStrings.subscribe, [authID, followedId]);
-			res.status(200).send("added");
-		}
-	} catch(e) {
-		console.log("post subscriptions error", e);
-		res.status(500).send();
+app.post(
+	"/subscription", 
+	validateJwt,
+	async (req: RequestProtected, res) => {
+		const {followedId, isFollowed} = req.body;
+		const authID = req.id;
+		try {
+			if (isFollowed) {
+				const queryResult = await pool.query(sqlStrings.unsubscribe, [authID, followedId]);
+				res.status(200).send("deleted");
+			} else {
+				const queryResult = await pool.query(sqlStrings.subscribe, [authID, followedId]);
+				res.status(200).send("added");
+			}
+		} catch(e) {
+			console.log("post subscriptions error", e);
+			res.status(500).send();
 	}
 })
 

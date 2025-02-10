@@ -6,7 +6,7 @@ import ProfileHeader from "./ProfileHeader"
 import NewPost from "./NewPost"
 import FeedPost from './FeedPost.tsx'
 import { imgResToObjUrl } from "../utils.ts"
-
+import { useJwtFetch } from "../utils.ts"
 
 // IF NO USER FOUND ADD HANDLING
 
@@ -43,11 +43,21 @@ export default function Profile() {
         userIdRef.current = userId;
     }, [userId])
 
+
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
+
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
             console.log(userIdRef.current, reduxId, offsetRef.current);
-            const queryResult = await fetch("http://localhost:3000/user_posts?id=" + userIdRef.current + "&viewer_id=" + reduxId + "&offset=" + offsetRef.current);
+            const queryResult = await fetch("http://localhost:3000/user_posts?id=" + userIdRef.current + "&offset=" + offsetRef.current, {
+                credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}
+            });
             if (!queryResult.ok) throw new Error("Error fetching the posts");
             const queryResultJson = await queryResult.json();
             if (queryResultJson.length == 0) postsAreLeftRef.current = false;
@@ -82,7 +92,9 @@ export default function Profile() {
     useEffect(()=>{
         const getUser = async () => {
             try {
-                const queryResult = await fetch("http://localhost:3000/user_profile?username=" + queryUsername + "&follower_id=" + reduxId);
+                const queryResult = await jwtFetch("http://localhost:3000/user_profile?username=" + queryUsername, {
+                    credentials:"include", headers: {"authorization":"Bearer " + accessTokenRef.current}
+                });
                 if (!queryResult.ok) throw new Error("Query failed");
                 const queryResultJson = await queryResult.json();
                 console.log("user:", queryResultJson);

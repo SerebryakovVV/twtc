@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import FeedPost from "./FeedPost";
 
+import { useJwtFetch } from "../utils";
 
 export default function Likes() {
     const [posts, setPosts] = useState<any[]>([]);
@@ -24,13 +25,28 @@ export default function Likes() {
     }, [offset])
     /////
 
+ const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    
+       
+    
+        const accessTokenRef = useRef(accessToken);
+
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
 
 
     ////
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
-            const response = await fetch("http://localhost:3000/liked_posts?user_id=" + userId + "&offset=" + offsetRef.current);
+            const response = await jwtFetch("http://localhost:3000/liked_posts?offset=" + offsetRef.current, 
+
+                {credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}} 
+
+            );
+            if (!response.ok) {throw new Error("error likes loading")}
             const responseJson = await response.json();
             if (responseJson.length == 0) postsAreLeftRef.current = false;
             setPosts((p)=>[...p, ...responseJson]);

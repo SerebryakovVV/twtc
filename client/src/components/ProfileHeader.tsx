@@ -2,6 +2,9 @@ import { useSelector } from "react-redux"
 import { RootState } from "../store"
 import { useEffect, useState } from "react";
 
+import { useJwtFetch } from "../utils";
+import { useRef } from "react";
+
 // type ProfileHeaderType = {
 //     isFollowing:boolean, pfp:string, username:string, subCount:number, postCount:number
 // }
@@ -16,6 +19,12 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
     // const [isFollowed, setIsFollowed] = useState<boolean>();
     const [fCount, setFCount] = useState<number>(subCount)
 
+    const jwtFetch = useJwtFetch();
+        const accessToken = useSelector((state: RootState) => state.auth.jwt);
+        const accessTokenRef = useRef(accessToken);
+        useEffect(()=>{
+            accessTokenRef.current = accessToken;
+        }, [accessToken])
 
     // on mount now, when content changes doesn't mean it unmounts
     useEffect(()=>{
@@ -49,11 +58,13 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
     const handlePfpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!authID || !e.target.files) return;
         const formData = new FormData();
-        formData.append('id', authID);
+        // formData.append('id', authID);
         formData.append('pfp', e.target.files[0])
         try {
-            const response = fetch("http://localhost:3000/pfp", {
+            const response = jwtFetch("http://localhost:3000/pfp", {
 				method:"POST",
+                credentials: "include",
+                headers:{"authorization":"Bearer " + accessTokenRef.current},
 				body: formData
 			});
             console.log(response);
