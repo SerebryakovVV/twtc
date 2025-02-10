@@ -59,7 +59,12 @@ export default function Login() {
 			const resultJSON = await response.json();
 			dispatch(setUsernameRedux(resultJSON.username));
 			dispatch(setIdRedux(resultJSON.id));
-			dispatch(setJwtRedux(resultJSON.accessToken))
+			dispatch(setJwtRedux(resultJSON.accessToken));
+			///////////////////////////////////////////////////////////
+			// localStorage.setItem("accessToken", resultJSON.accessToken);
+			// localStorage.setItem("id", resultJSON.id);
+			// localStorage.setItem("username", resultJSON.username);
+			///////////////////////////////////////////////////////////
 			navigate("/");
 		} catch (err) {
 			console.log("its so over ", err);

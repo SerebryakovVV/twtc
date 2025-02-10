@@ -48,7 +48,10 @@ export const useJwtFetch = () => {
             if (refreshResponse.status === 200) {
                 console.log("refresh good");
                 const newAccessToken = await refreshResponse.text();
-                dispatch(setJwtRedux(newAccessToken))
+                dispatch(setJwtRedux(newAccessToken));
+                ///////////////////////////////////////////////////////////
+			    // localStorage.setItem("accessToken", newAccessToken);
+			    ///////////////////////////////////////////////////////////
                 return await fetch(path, {...options, headers:{...options.headers,"authorization":"Bearer " + newAccessToken}});
             } 
             console.log("navigate");

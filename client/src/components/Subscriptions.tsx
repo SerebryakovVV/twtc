@@ -48,7 +48,7 @@ export default function Subscriptions() {
 
 
 function SubscriptionCard({name, id, pfp}) {
-
+    // where is isLoading state
     const [isFollowed, setIsFollowed] = useState(true);
     const navigate = useNavigate();
     const authID = useSelector((state: RootState) => state.auth.id);
