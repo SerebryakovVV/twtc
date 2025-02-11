@@ -21,10 +21,7 @@ export default function NewReply({toRoot, replyToName, postID, parentCommentID, 
         }
     }, [reply])
 
-    const handleReplyChange = (e) => {
-        // check the length
-        setReply(e.target.value);
-    }
+   
 
      const jwtFetch = useJwtFetch();
             const accessToken = useSelector((state: RootState) => state.auth.jwt);
@@ -51,15 +48,20 @@ export default function NewReply({toRoot, replyToName, postID, parentCommentID, 
         } catch(e) {
             console.log(e);
         }
-
-            
     }
 
     return(
-        // <div className="px-3 py-1">
         <div className={`${toRoot && "border-b border-zinc-300 "} px-3 py-1 `}>
             <div className="text-lg">Reply</div>
-            <textarea ref={replyRef} value={reply} onChange={handleReplyChange} className="bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none overflow-hidden focus:outline-none text-sm"/>
+            <textarea 
+                ref={replyRef} 
+                value={reply} 
+                className="bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none overflow-hidden focus:outline-none text-sm"    
+                onChange={(e)=>setReply(
+                                    e.target.value.length > 1000 
+                                  ? e.target.value.slice(0, 1000) 
+                                  : e.target.value)}
+            />
             <button onClick={handleReplySend}>Send</button>
         </div>
     );

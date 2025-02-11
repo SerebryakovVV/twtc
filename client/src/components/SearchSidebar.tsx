@@ -9,6 +9,7 @@ export default function SearchSidebar() {
     const navigate = useNavigate();
 
     const handleSearch = () => {
+        if (searchString.length === 0) return;
         navigate("/profile/"+searchString);
         console.log(searchString);
         setSearchString("");
@@ -19,7 +20,7 @@ export default function SearchSidebar() {
             <div className="flex border-b border-zinc-300">
                 <input 
                     value={searchString}
-                    onChange={(e)=>setSearchString(e.target.value)}
+                    onChange={(e)=>setSearchString(e.target.value.length > 20 ? e.target.value.slice(0, 20) : e.target.value)}
                     className="w-[160px] h-9 mt-[3px] p-1 bg-zinc-100 focus:outline-none"
                     type="text" 
                     placeholder="Search"
