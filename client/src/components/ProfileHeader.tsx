@@ -98,8 +98,8 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
                 </div>
                 {username === authUsername 
                     ?<div>
-                        <input onChange={handlePfpChange} id="file-input" className="hidden" type="file" accept="image/*"/>
-                        <label htmlFor="file-input" className="underline mt-2 ml-1 cursor-pointer">
+                        <input onChange={handlePfpChange} id="pfp-input" className="hidden" type="file" accept="image/*"/>
+                        <label htmlFor="pfp-input" className="underline mt-2 ml-1 cursor-pointer">
                             change picture
                         </label>
                     </div>

@@ -81,6 +81,7 @@ export default function NewPost() {
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         console.log(e.target.files);
+        console.log("it do be changing tho")
         const files = e.target.files ? Array.from(e.target.files) : [];
         const imageUrls = files.map((file) => URL.createObjectURL(file));
         setFilesState(files.slice(0,4));
