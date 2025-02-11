@@ -167,7 +167,7 @@ export default function Post() {
                     <div className="w-full border-b border-zinc-300 ">
                         <div className="flex pl-3 pt-2">
                             <div className="flex items-center mr-2 cursor-pointer" >
-                                <img src={pfp ?? "/kitty.png"} className="rounded-full w-[40px] h-[40px]" onClick={()=>{navigate("/profile/" + username)}}/>
+                                <img src={pfp ?? "/default_pfp.jpg"} className="rounded-full w-[40px] h-[40px]" onClick={()=>{navigate("/profile/" + username)}}/>
                             </div>
                             <div>
                                 <div className="cursor-pointer" onClick={()=>{navigate("/profile/" + username)}}>{username}</div>

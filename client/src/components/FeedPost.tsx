@@ -82,11 +82,13 @@ export default function FeedPost({id, username, timestamp, text, images, likesNu
         // when i click pfp/username the follower_id=null
         <div className="w-full border-b border-zinc-300">
             <div className="flex pl-3 pt-2">
-                <div className="w-[40px] h-[40px] shrink-0 rounded-full overflow-hidden mr-2 cursor-pointer" onClick={()=>window.location.reload()}>
-                    <img src={pfp ?? "/kitty.png"} className="object-cover object-center w-full h-full"/>
+                {/* <div className="w-[40px] h-[40px] shrink-0 rounded-full overflow-hidden mr-2 cursor-pointer" onClick={()=>window.location.reload()}> */}
+                <div className="w-[40px] h-[40px] shrink-0 rounded-full overflow-hidden mr-2 cursor-pointer" onClick={()=>navigate("/profile/"+username)}>
+                    <img src={pfp ?? "/default_pfp.jpg"} className="object-cover object-center w-full h-full"/>
                 </div>
                 <div>
-                    <div className="cursor-pointer" onClick={()=>window.location.reload()}>{username}</div>
+                    {/* <div className="cursor-pointer" onClick={()=>window.location.reload()}>{username}</div> */}
+                    <div className="cursor-pointer" onClick={()=>navigate("/profile/"+username)}>{username}</div>
                     <div>{timestampTransform(timestamp)}</div>
                 </div>
             </div>

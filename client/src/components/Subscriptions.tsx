@@ -97,7 +97,7 @@ function SubscriptionCard({name, id, pfp}) {
     return(
         <div className="border-b border-zinc-300 flex p-2">
             <div className="w-[70px] h-[70px] shrink-0 rounded-full overflow-hidden mr-2">
-                <img onClick={()=>navigate("/profile/" + name)} className="object-cover object-center w-full h-full rounded-md cursor-pointer" src={pfp ?? "/kitty.png"} alt="" />
+                <img onClick={()=>navigate("/profile/" + name)} className="object-cover object-center w-full h-full rounded-md cursor-pointer" src={pfp ?? "/default_pfp.jpg"} alt="" />
             </div>
             <div className="pt-1">
                 <div onClick={()=>navigate("/profile/" + name)} className="text-xl cursor-pointer">{name}</div>

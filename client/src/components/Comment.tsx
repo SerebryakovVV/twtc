@@ -98,11 +98,8 @@ export default function Comment({postId, id, root, username, timestamp, text, is
         // <div className={`${notRoot ? "pl-[50px]" : "pl-2" } pr-2 pt-2 border-b border-zinc-300`}>
         <div className={`${!root && "pl-[30px] "} pt-2 border-b border-zinc-300`}>
             <div className="flex mx-2">
-                {/* <div className="flex items-center mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
-                    <img src={pfp ?? "/kitty.png"} className="rounded-full w-[40px] h-[40px]" />
-                </div> */}
                 <div className="w-[40px] h-[40px] shrink-0 rounded-full overflow-hidden mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
-                    <img src={pfp ?? "/kitty.png"} className="object-cover object-center w-full h-full" />
+                    <img src={pfp ?? "/default_pfp.jpg"} className="object-cover object-center w-full h-full" />
                 </div>
                 <div>
                     <div className="cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
