@@ -13,7 +13,10 @@ export default function PostImages({images}:{images:any[]}) {
     const [imagesTransformed, setImagesTransformed] = useState<any[]>([]);
 
     useEffect(()=>{
-        const cleanUpReference = images.map((i)=>({id:i.image_id, image:imgResToObjUrl(i.image)}));
+        console.log(images);
+        
+        const cleanUpReference = images.map((i)=>({image_id:i.image_id, image:imgResToObjUrl(i.image)}));
+        console.log(cleanUpReference);
         setImagesTransformed(cleanUpReference);
         return () => cleanUpReference.forEach((i)=>URL.revokeObjectURL(i.image))
     }, [images])
@@ -53,8 +56,8 @@ export default function PostImages({images}:{images:any[]}) {
         <div className="grid grid-cols-2 grid-rows-2 w-[476px] h-[238px] border border-zinc-300 m-auto">
             {imagesTransformed.map((img, index)=>{
                 return(
-                    <div key={img.id} className={layout[index] + " overflow-hidden"}>
-                        <img alt="notihgn here"
+                    <div key={img.image_id} className={layout[index] + " overflow-hidden"}>
+                        <img  alt="notihgn here"
                             className="object-cover object-center w-full h-full" 
                             src={img.image}
                             onClick={()=>handleFullscreen(index)}    

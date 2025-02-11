@@ -77,7 +77,7 @@ export const getPost =
         coalesce(
             json_agg(
                 json_build_object(
-                    'id', post_image.id,
+                    'image_id', post_image.id,
                     'image', image
                 ) ORDER BY position
             ) FILTER(WHERE post_image.id IS NOT NULL), '[]'
