@@ -117,10 +117,9 @@ app.post("/login",
             return;
         }
         const {username, password} = req.body; 
-        const client = await pool.connect();
         let userRequesResult;
         try {
-            userRequesResult = await client.query(sqlStrings.getUser, [username]);
+            userRequesResult = await pool.query(sqlStrings.getUser, [username]);
             if (userRequesResult.rows.length === 0) {
                 res.status(404).send("User not found!");
                 return;
@@ -168,8 +167,6 @@ app.post("/login",
         } catch(err) {
             console.log("login error", err);
             res.status(500).send("DB error!");
-        } finally {
-            client.release();
         }
 })
 
@@ -192,10 +189,9 @@ app.post("/register",
             return;
         }
         const {username, password} = req.body; 
-        const client = await pool.connect();
         try {
             try {
-                const userExists = await client.query(sqlStrings.checkUserExists, [username]);
+                const userExists = await pool.query(sqlStrings.checkUserExists, [username]);
                 if (userExists.rows.length !== 0) {
                     res.status(409).send("User already exists!");
                     return;
@@ -214,13 +210,11 @@ app.post("/register",
                 res.status(500).send("Hashing error");
                 return;
             }
-            const queryResult = await client.query(sqlStrings.addUser, [username, hashedPassword]);
+            const queryResult = await pool.query(sqlStrings.addUser, [username, hashedPassword]);
             res.status(200).send(queryResult);
         } catch(err) {
             console.log("register error", err);
             res.status(500).send("DB error, while inserting");
-        } finally {
-            client.release();
         }
 })
 
