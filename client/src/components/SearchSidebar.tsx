@@ -16,7 +16,7 @@ export default function SearchSidebar() {
     }
 
     return (
-        <div className="w-[200px] bg-zinc-100 border-l border-zinc-300 pl-1 pr-1">
+        <div className="w-[200px] bg-zinc-100 border-l border-zinc-300 pl-1 pr-1 fixed min-h-screen left-1/2 translate-x-[225px]">
             <div className="flex border-b border-zinc-300">
                 <input 
                     value={searchString}
