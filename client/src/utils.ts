@@ -50,7 +50,7 @@ export const useJwtFetch = () => {
                 const newAccessToken = await refreshResponse.text();
                 dispatch(setJwtRedux(newAccessToken));
                 ///////////////////////////////////////////////////////////
-			    // localStorage.setItem("accessToken", newAccessToken);
+			    localStorage.setItem("accessToken", newAccessToken);
 			    ///////////////////////////////////////////////////////////
                 return await fetch(path, {...options, headers:{...options.headers,"authorization":"Bearer " + newAccessToken}});
             } 

@@ -10,17 +10,69 @@ import { useState } from 'react';
 // skip the reload save for now, can put the id, username and jwt into localstorage, but will need to put it in useState in components
 
 export default function AuthProvider({children}:{children:ReactNode}): JSX.Element | null {
+	const navigate = useNavigate();
+	const dispatch = useDispatch()
+	const accessToken = useSelector((state: RootState) => state.auth.jwt);
+	const username = useSelector((state: RootState) => state.auth.username);
+    const id = useSelector((state: RootState) => state.auth.id);
+
+    const [isSynced, setIsSynced] = useState<boolean>(false);
+
+    useEffect(()=>{
+        const storedAccessToken = localStorage.getItem('accessToken');
+        const storedUsername = localStorage.getItem('username');
+        const storedId = localStorage.getItem('id');
+        if (!accessToken && storedAccessToken) dispatch(setJwtRedux(storedAccessToken));
+        if (!username && storedUsername) dispatch(setUsernameRedux(storedUsername));
+        if (!id && storedId) dispatch(setIdRedux(storedId));
+        console.log("the first effect, redux:", accessToken, username, id);
+        console.log("the first effect, local:", storedAccessToken, storedUsername, storedId);
+
+        setIsSynced(true);
+
+    }, [accessToken, username, id])
+	
+	useEffect(()=>{
+        console.log("the second effect:", accessToken, username, id)
+
+        if (isSynced) {
+            if (!accessToken || !username || !id) navigate("/login");
+            setIsSynced(false);
+        }
+
+		
+	}, [accessToken, username, id, isSynced]);
+	return (accessToken && username && id) ? <>{children}</> : null;
+}
+
+
+
+
+
+
+
+
+/*
+
+export default function AuthProvider({children}:{children:ReactNode}): JSX.Element | null {
 	// const [username, setUsername] = useState();
 	// const [id, setId] = useState();
 
 	const navigate = useNavigate();
 	const dispatch = useDispatch()
-	// const accessToken = useSelector((state: RootState) => state.auth.jwt) || localStorage.getItem('accessToken');
-	const accessToken = useSelector((state: RootState) => state.auth.jwt);
-	// also need to put id and username into the localstorage
+	const accessToken = useSelector((state: RootState) => state.auth.jwt) || localStorage.getItem('accessToken');
+	
 
-	// let username = useSelector((state: RootState) => state.auth.username);
-	// if (!username) {
+	const username = useSelector((state: RootState) => state.auth.username) || localStorage.getItem('username');
+    const id = useSelector((state: RootState) => state.auth.id) || localStorage.getItem('id');
+	
+    
+
+    // const accessToken = useSelector((state: RootState) => state.auth.jwt);
+	// also need to put id and username into the localstorage
+    
+    
+    // if (!username) {
 	// 	username = localStorage.getItem("username");
 	// 	if (username) dispatch(setUsernameRedux(username));
 	// }
@@ -36,6 +88,16 @@ export default function AuthProvider({children}:{children:ReactNode}): JSX.Eleme
 	}, [accessToken]);
 	return accessToken ? <>{children}</> : null;
 }
+
+*/
+
+
+
+
+
+
+
+
 
 
 /*

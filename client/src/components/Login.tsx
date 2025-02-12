@@ -61,9 +61,9 @@ export default function Login() {
 			dispatch(setIdRedux(resultJSON.id));
 			dispatch(setJwtRedux(resultJSON.accessToken));
 			///////////////////////////////////////////////////////////
-			// localStorage.setItem("accessToken", resultJSON.accessToken);
-			// localStorage.setItem("id", resultJSON.id);
-			// localStorage.setItem("username", resultJSON.username);
+			localStorage.setItem("accessToken", resultJSON.accessToken);
+			localStorage.setItem("id", resultJSON.id);
+			localStorage.setItem("username", resultJSON.username);
 			///////////////////////////////////////////////////////////
 			navigate("/");
 		} catch (err) {
