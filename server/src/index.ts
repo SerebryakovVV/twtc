@@ -8,7 +8,7 @@ import fs from 'fs';
 import multer from 'multer';
 const cookieParser = require("cookie-parser");
 import * as sqlStrings from "./sqlStrings";
-
+import { validateUsername, validatePassword, validateComment, validatePost } from "./validationChains";
 
 
 
@@ -43,7 +43,7 @@ interface RequestProtected extends Request {
 
 const JWT_ACCESS_SECRET = "accSec";
 const JWT_REFRESH_SECRET = "refSec";
-const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"10s"});
+const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"15m"});
 const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"15d"});
 
 
@@ -94,22 +94,11 @@ const validateJwt = (req: RequestProtected, res: Response, next: NextFunction) =
 }
 
 
-
-
-
-
 // https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
-app.post("/login", 
-    body("username")
-        .matches(/^[a-zA-Z0-9]{1,20}$/)
-        .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
-        .isString()
-        .withMessage("Username should be a string"),
-    body("password")
-        .matches(/^[a-zA-Z0-9!@#$%&*]{6,20}$/)
-        .withMessage("Password must only contain letters, numbers, special characters: !@#$%&*, and be 6-20 characters long")
-        .isString()
-        .withMessage("Password should be a string"),
+app.post(
+	"/login", 
+    validateUsername(), 
+	validatePassword(),
     async (req: Request, res: Response)=>{
         const valRes = validationResult(req);
         if (!valRes.isEmpty()) {
@@ -135,11 +124,6 @@ app.post("/login",
                 res.status(500).send("Hash comparison error!");
                 return;
             }
-
-			
-			
-
-			////////////////////////////// THE JWT PART
 			const accessToken = generateAccessJwt({
 				username: userRequesResult.rows[0].name,
 				id: userRequesResult.rows[0].id
@@ -154,34 +138,18 @@ app.post("/login",
                 username,
                 id: userRequesResult.rows[0].id
             });
-
-			////////////////////////////////
-
-
-            
-
-
-
-
-
         } catch(err) {
             console.log("login error", err);
             res.status(500).send("DB error!");
         }
-})
+	}
+)
 
 
-app.post("/register", 
-    body("username")
-        .matches(/^[a-zA-Z0-9]{1,20}$/)
-        .withMessage("Username must only contain letters and numbers and be 1-20 characters long")
-        .isString()
-        .withMessage("Username should be a string"),
-    body("password")
-        .matches(/^[a-zA-Z0-9!@#$%&*]{6,20}$/)
-        .withMessage("Password must only contain letters, numbers, special characters: !@#$%&*, and be 6-20 characters long")
-        .isString()
-        .withMessage("Password should be a string"),
+app.post(
+	"/register", 
+    validateUsername(), 
+	validatePassword(),
     async (req: Request, res: Response)=>{
         const valRes = validationResult(req);
         if (!valRes.isEmpty()) {
@@ -216,7 +184,8 @@ app.post("/register",
             console.log("register error", err);
             res.status(500).send("DB error, while inserting");
         }
-})
+	}
+)
 
 
 
@@ -247,254 +216,290 @@ app.post("/register",
 
 
 
-
+// change the images to in memory
+// check the validation, rewrite
 // multer and images https://chatgpt.com/c/67422857-082c-8008-8782-0c68431e4d7a
 // change to async file read
 // change to for ... of ... loop https://chatgpt.com/c/674230a0-71d4-8008-acd5-f4bd0e2721ad
 // I DONT NEED TO USE UPLOAD FOLDER, USE MEMORY, REWRITE EVERYTHING
 // RECONFIGURE THE MULTER, REWRITE PFP ENDPOINT TO USE MEMORY
-app.post("/post", validateJwt, upload.array('images'), async (req: RequestProtected, res)=>{
-    const { text } = req.body;
-	const authorID = req.id;
-	let images: Express.Multer.File[] = [];
-	let bufferArray: Buffer[] = [];
-	if (req.files && req.files.length !== 0) {
-		images = req.files as Express.Multer.File[];
-		for (const image of images) {
-            const buffer = await fs.promises.readFile(image.path);
-            bufferArray.push(buffer);
-        }
-	}
-	const client = await pool.connect();
-	try {
-		await client.query("BEGIN");
-		const postInsertResult = await client.query(sqlStrings.addPostBase, [authorID, text]);
-		const postID = postInsertResult.rows[0].id;
-		if (bufferArray.length !== 0) {
-			for (const [index, image] of bufferArray.entries()) {
-				await client.query(sqlStrings.addPostImg, [postID, image, index]);
+app.post(
+	"/post", 
+	validateJwt, 
+	upload.array('images'), 
+	validatePost(),
+	async (req: RequestProtected, res)=>{
+		const { text } = req.body;
+		const authorID = req.id;
+		let images: Express.Multer.File[] = [];
+		let bufferArray: Buffer[] = [];
+		if (req.files && req.files.length !== 0) {
+			images = req.files as Express.Multer.File[];
+			for (const image of images) {
+				if (image.mimetype !== "image/png") {
+					res.status(400).send("Only PNG images are allowed");
+					return;
+				}
+				const buffer = await fs.promises.readFile(image.path);
+				bufferArray.push(buffer);
 			}
 		}
-		await client.query("COMMIT");
-	} catch(e) {
-		console.log("post creation error", text, authorID, e);
-		await client.query("ROLLBACK");
-		res.status(500).send("post creation db fail");
-	} finally {
-		if (images && images.length !== 0) {
-			for (const image of images) {
-				try {
-					await fs.promises.unlink(image.path);
-				} catch(e) {
-					console.log("error deleting the file", image);
+		const client = await pool.connect();
+		try {
+			await client.query("BEGIN");
+			const postInsertResult = await client.query(sqlStrings.addPostBase, [authorID, text]);
+			const postID = postInsertResult.rows[0].id;
+			if (bufferArray.length !== 0) {
+				for (const [index, image] of bufferArray.entries()) {
+					await client.query(sqlStrings.addPostImg, [postID, image, index]);
 				}
 			}
-		}
-		client.release();
-	}   
-})
+			await client.query("COMMIT");
+		} catch(e) {
+			console.log("post creation error", text, authorID, e);
+			await client.query("ROLLBACK");
+			res.status(500).send("post creation db fail");
+		} finally {
+			if (images && images.length !== 0) {
+				for (const image of images) {
+					try {
+						await fs.promises.unlink(image.path);
+					} catch(e) {
+						console.log("error deleting the file", image);
+					}
+				}
+			}
+			client.release();
+		}   
+	}
+)
 // https://chatgpt.com/c/6733afd6-4cd8-8008-8f87-0b721e199f0f
 
 
-
-
-
-
-app.get("/user_posts", validateJwt, async (req: RequestProtected, res)=>{
-  	const { id, offset } = req.query;
-	const viewer_id = req.id;
-  	try {
-		const queryResult = await pool.query(sqlStrings.getUserPosts, [viewer_id, id, offset]);
-      	res.status(200).send(queryResult.rows);
-  	} catch(e) {
-      	console.log("get user post error", e);
-      	res.status(500).send("db failed");
-  	}
-})
-
-
-app.get("/user_profile", validateJwt, async (req: RequestProtected, res)=>{
-	const { username } = req.query;
-	const follower_id = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.getUserProfile, [follower_id, username]);
-		res.status(200).send(queryResult.rows);
-	} catch(e) {
-		console.log("get user profile error", e);
-		res.status(500).send('Query failed');
+app.get(
+	"/user_posts", 
+	validateJwt, 
+	async (req: RequestProtected, res)=>{
+		const { id, offset } = req.query;
+		const viewer_id = req.id;
+		try {
+			const queryResult = await pool.query(sqlStrings.getUserPosts, [viewer_id, id, offset]);
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get user post error", e);
+			res.status(500).send("db failed");
+		}
 	}
-})
+)
 
 
-// ADD USERNAME AND USER PROFILE PICTURE
-// get rid of id, probably
-// ADD THE NUMBER OF LIKES AND IF THE USER QUERYING HAS ALREADY LIKED IT
-app.get("/post", validateJwt, async (req: RequestProtected, res) => {
-	const { id } = req.query;
-	const viewerId = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.getPost, [id, viewerId]);
-		res.status(200).send(queryResult.rows);
-	} catch(e) {
-		console.log("get post error", e);
-		res.status(500).send();
+app.get(
+	"/user_profile", 
+	validateJwt, 
+	async (req: RequestProtected, res)=>{
+		const { username } = req.query;
+		const follower_id = req.id;
+		try {
+			const queryResult = await pool.query(sqlStrings.getUserProfile, [follower_id, username]);
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get user profile error", e);
+			res.status(500).send('Query failed');
+		}
 	}
-})
+)
 
 
-app.post("/comment", validateJwt, async (req: RequestProtected, res) => {
-	const { postID, reply, parentCommentID } = req.body;
-	const authorID = req.id;
-	try {
-		await pool.query(sqlStrings.addComment, [authorID, postID, reply, parentCommentID]);
-		res.status(200).send();
-	} catch(e) {
-		console.log("post comment error", e);
-		res.status(500).send("db error on comment add");
+app.get(
+	"/post", 
+	validateJwt, 
+	async (req: RequestProtected, res) => {
+		const { id } = req.query;
+		const viewerId = req.id;
+		try {
+			const queryResult = await pool.query(sqlStrings.getPost, [id, viewerId]);
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get post error", e);
+			res.status(500).send();
+		}
 	}
-})
+)
 
 
-// maybe add distinct
-app.get("/root_comments", validateJwt, async(req: RequestProtected, res) => {
-	const { post_id, offset } = req.query; 
-	const user_id = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.getRootComments, [user_id, post_id, offset]);
-		res.status(200).send(queryResult.rows);
-	} catch(e) {
-		console.log("get root comments error", e);
-		res.status(500).send("db error getting comments");
+app.post(
+	"/comment",
+	validateJwt,
+	validateComment(), 
+	async (req: RequestProtected, res) => {
+		const { postID, reply, parentCommentID } = req.body;
+		const authorID = req.id;
+		try {
+			await pool.query(sqlStrings.addComment, [authorID, postID, reply, parentCommentID]);
+			res.status(200).send();
+		} catch(e) {
+			console.log("post comment error", e);
+			res.status(500).send("db error on comment add");
+		}
 	}
-});
+)
 
 
-// if i send text in 500 response, frontend needs to check if response.ok, or parsing breaks
-app.get("/comment_replies", validateJwt, async (req: RequestProtected, res) => {
-	const { comment_id } = req.query;
-	const user_id = req.id;
-	try {
-		const queryResponse = await pool.query(sqlStrings.getCommentReplies, [user_id, comment_id]);
-		res.status(200).send(queryResponse.rows);
-	} catch(e) {
-		console.log("get comment replies error", e);
-		res.status(500).send();
+app.get(
+	"/root_comments", 
+	validateJwt,
+	async(req: RequestProtected, res) => {
+		const { post_id, offset } = req.query; 
+		const user_id = req.id;
+		try {
+			const queryResult = await pool.query(sqlStrings.getRootComments, [user_id, post_id, offset]);
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get root comments error", e);
+			res.status(500).send("db error getting comments");
+		}
 	}
-})
+);
+
+
+app.get(
+	"/comment_replies", 
+	validateJwt, 
+	async (req: RequestProtected, res) => {
+		const { comment_id } = req.query;
+		const user_id = req.id;
+		try {
+			const queryResponse = await pool.query(sqlStrings.getCommentReplies, [user_id, comment_id]);
+			res.status(200).send(queryResponse.rows);
+		} catch(e) {
+			console.log("get comment replies error", e);
+			res.status(500).send();
+		}
+	}
+)
+
 
 
 // change to in memory
-app.post("/pfp", validateJwt, upload.single("pfp"), async (req: RequestProtected, res) => {
-	const id  = req.id;
-	const file = req.file;
-	if (!file) {res.status(400).send(); return;}  
-	const buffer = await fs.promises.readFile(file.path);
-	try {
-		const queryResult = await pool.query(sqlStrings.addPfp, [buffer, id]);
-		res.status(200).send();
-	} catch(e) {
-		console.log(e);
-		res.status(500).send();
-	} finally {
-		await fs.promises.unlink(file.path)		// this can error btw
+app.post(
+	"/pfp", 
+	validateJwt, 
+	upload.single("pfp"), 
+	async (req: RequestProtected, res) => {
+		const id  = req.id;
+		const file = req.file;
+		if (!file) {res.status(400).send(); return;}
+		if (file.mimetype !== "image/png") {
+			res.status(400).send("Only PNG images are allowed");
+			return;
+		}
+		const buffer = await fs.promises.readFile(file.path);
+		try {
+			const queryResult = await pool.query(sqlStrings.addPfp, [buffer, id]);
+			res.status(200).send();
+		} catch(e) {
+			console.log(e);
+			res.status(500).send();
+		} finally {
+			await fs.promises.unlink(file.path)		// this can error btw
+		}
 	}
-})
+)
+/*
+Multer's .single("pfp") executes before validation
+
+This means a non-PNG file still gets uploaded before being rejected.
+Solution: Use Multer's fileFilter to reject non-PNG files before upload.
+Fix potential fs.promises.unlink(file.path) error
+
+If deleting the file fails, it should be handled properly.
+Solution: Use try/catch inside finally to safely remove the file.
+*/
 
 
-
-
-
-
-/////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-// like unlike post is used in two files
-
-
-// it will throw an error because of constraints
-// rewrite with body and add an action field
-app.post("/like_post", validateJwt, async (req: RequestProtected, res) => {
-	const { id } = req.body;
-	const userId = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.likePost, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log("post like post error", e);
-		res.status(500).send("failed like deletion");
+app.post(
+	"/like_post", 
+	validateJwt, 
+	async (req: RequestProtected, res) => {
+		const { id } = req.body;
+		const userId = req.id;
+		try {
+			await pool.query(sqlStrings.likePost, [id, userId]);
+			res.status(200).send("success");
+		} catch(e) {
+			console.log("post like post error", e);
+			res.status(500).send("failed like deletion");
+		}
 	}
-})
+)
 
 
-app.delete("/like_post", validateJwt, async (req: RequestProtected, res) => {
-	const { id } = req.body;
-	const userId = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.unlikePost, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log("delete like post error", e);
-		res.status(500).send("failed like deletion");
+app.delete(
+	"/like_post", 
+	validateJwt, 
+	async (req: RequestProtected, res) => {
+		const { id } = req.body;
+		const userId = req.id;
+		try {
+			await pool.query(sqlStrings.unlikePost, [id, userId]);
+			res.status(200).send("success");
+		} catch(e) {
+			console.log("delete like post error", e);
+			res.status(500).send("failed like deletion");
+		}
 	}
-})
+)
 
 
-app.post("/like_comment", validateJwt, async (req: RequestProtected, res) => {
-	const { id } = req.body;
-	const userId = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.likeComment, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log(e);
-		res.status(500).send("failed comment like deletion");
+app.post(
+	"/like_comment", 
+	validateJwt, 
+	async (req: RequestProtected, res) => {
+		const { id } = req.body;
+		const userId = req.id;
+		try {
+			await pool.query(sqlStrings.likeComment, [id, userId]);
+			res.status(200).send("success");
+		} catch(e) {
+			console.log(e);
+			res.status(500).send("failed comment like deletion");
+		}
 	}
-})
+)
 
 
-app.delete("/like_comment", validateJwt, async (req: RequestProtected, res) => {
-	const { id } = req.body;
-	const userId = req.id;
-	try {
-		const queryResult = await pool.query(sqlStrings.unlikeComment, [id, userId]);
-		res.status(200).send("success");
-	} catch(e) {
-		console.log(e);
-		res.status(500).send("failed like deletion");
+app.delete(
+	"/like_comment", 
+	validateJwt, 
+	async (req: RequestProtected, res) => {
+		const { id } = req.body;
+		const userId = req.id;
+		try {
+			await pool.query(sqlStrings.unlikeComment, [id, userId]);
+			res.status(200).send("success");
+		} catch(e) {
+			console.log(e);
+			res.status(500).send("failed like deletion");
+		}
 	}
-})
+)
 
 
-
-
-
-
-
-
-
-
-
-
-app.get("/liked_posts", validateJwt, async (req: RequestProtected, res)=>{
-	const { offset } = req.query;
-	const user_id = req.id;
-	try {
-	  	const queryResult = await pool.query(sqlStrings.getLikedPosts, [user_id, offset]);
-		res.status(200).send(queryResult.rows);
-	} catch(e) {
-		console.log("get liked posts error", e);
-		res.status(500).send("db failed");
+app.get(
+	"/liked_posts", 
+	validateJwt, 
+	async (req: RequestProtected, res)=>{
+		const { offset } = req.query;
+		const user_id = req.id;
+		try {
+			const queryResult = await pool.query(sqlStrings.getLikedPosts, [user_id, offset]);
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get liked posts error", e);
+			res.status(500).send("db failed");
+		}
 	}
-})
+)
 
 
 app.get(
@@ -510,22 +515,24 @@ app.get(
 			console.log("get subscriptions posts error", e);
 			res.status(500).send("db failed");
 		}
-})
+	}
+)
 
 
 app.get(
 	"/subscriptions", 
 	validateJwt,
 	async (req: RequestProtected, res)=>{
-	const user_id = req.id;
-	try {
-	  const queryResult = await pool.query(sqlStrings.getSubscriptions, [user_id]);
-		res.status(200).send(queryResult.rows);
-	} catch(e) {
-		console.log("get subscriptions error", e);
-		res.status(500).send("db failed");
+		const user_id = req.id;
+		try {
+			const queryResult = await pool.query(sqlStrings.getSubscriptions, [user_id]);
+			res.status(200).send(queryResult.rows);
+		} catch(e) {
+			console.log("get subscriptions error", e);
+			res.status(500).send("db failed");
+		}
 	}
-})
+)
 
 
 app.post(
@@ -536,17 +543,18 @@ app.post(
 		const authID = req.id;
 		try {
 			if (isFollowed) {
-				const queryResult = await pool.query(sqlStrings.unsubscribe, [authID, followedId]);
+				await pool.query(sqlStrings.unsubscribe, [authID, followedId]);
 				res.status(200).send("deleted");
 			} else {
-				const queryResult = await pool.query(sqlStrings.subscribe, [authID, followedId]);
+				await pool.query(sqlStrings.subscribe, [authID, followedId]);
 				res.status(200).send("added");
 			}
 		} catch(e) {
 			console.log("post subscriptions error", e);
 			res.status(500).send();
+		}
 	}
-})
+)
 
 
 process.on('exit', () => {

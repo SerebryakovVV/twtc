@@ -68,14 +68,6 @@ export default function NewPost() {
 
     
 
-    const handeleTextChange = (e) => {
-        console.log(e.target.scrollHeight);
-        // console.log(height);
-        setText(e.target.value);
-        // setHeight("");
-        // setHeight(e.target.scrollHeight);
-        
-    }
 
 //https://chatgpt.com/c/6734f4db-1190-8008-ab20-49056a595c48
 
@@ -95,13 +87,16 @@ export default function NewPost() {
                 ref={textAreaRef}
                 className={`bg-zinc-100 border border-zinc-300 p-1 mt-1 w-full block resize-none focus:outline-none text-sm overflow-hidden`}
                 value={text}
-                onChange={handeleTextChange}>
+                onChange={(e)=>setText(
+                                    e.target.value.length > 10000 
+                                  ? e.target.value.slice(0, 10000) 
+                                  : e.target.value)}>
             </textarea>
-            <input id="file-input" className="hidden" type="file" accept="image/*" multiple onChange={handleImageChange}/>
+            <input id="file-input" className="hidden" type="file" accept="image/png" multiple onChange={handleImageChange}/>
             <div className="mt-1">
                 <div className="flex">
                     {images.map((i)=>{return(
-                        <div className="w-[100px] h-[100px] mr-4 border border-zinc-300">
+                        <div key={i} className="w-[100px] h-[100px] mr-4 border border-zinc-300">
                            <img className="object-cover object-center w-full h-full" src={i}/>
                         </div>
                     )})}
