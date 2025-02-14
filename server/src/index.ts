@@ -189,40 +189,6 @@ app.post(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// change the images to in memory
-// check the validation, rewrite
-// multer and images https://chatgpt.com/c/67422857-082c-8008-8782-0c68431e4d7a
-// change to async file read
-// change to for ... of ... loop https://chatgpt.com/c/674230a0-71d4-8008-acd5-f4bd0e2721ad
-// I DONT NEED TO USE UPLOAD FOLDER, USE MEMORY, REWRITE EVERYTHING
-// RECONFIGURE THE MULTER, REWRITE PFP ENDPOINT TO USE MEMORY
 app.post(
 	"/post", 
 	validateJwt, 
@@ -273,7 +239,7 @@ app.post(
 		}   
 	}
 )
-// https://chatgpt.com/c/6733afd6-4cd8-8008-8f87-0b721e199f0f
+
 
 
 app.get(
@@ -380,7 +346,7 @@ app.get(
 
 
 
-// change to in memory
+
 app.post(
 	"/pfp", 
 	validateJwt, 
@@ -395,26 +361,21 @@ app.post(
 		}
 		const buffer = await fs.promises.readFile(file.path);
 		try {
-			const queryResult = await pool.query(sqlStrings.addPfp, [buffer, id]);
+			await pool.query(sqlStrings.addPfp, [buffer, id]);
 			res.status(200).send();
 		} catch(e) {
 			console.log(e);
 			res.status(500).send();
 		} finally {
-			await fs.promises.unlink(file.path)		// this can error btw
+			try {
+				await fs.promises.unlink(file.path)
+			} catch(e) {
+				console.log(e);
+			}
 		}
 	}
 )
-/*
-Multer's .single("pfp") executes before validation
 
-This means a non-PNG file still gets uploaded before being rejected.
-Solution: Use Multer's fileFilter to reject non-PNG files before upload.
-Fix potential fs.promises.unlink(file.path) error
-
-If deleting the file fails, it should be handled properly.
-Solution: Use try/catch inside finally to safely remove the file.
-*/
 
 
 app.post(
