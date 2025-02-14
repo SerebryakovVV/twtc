@@ -1,4 +1,4 @@
-export const getUser = `SELECT * FROM users WHERE name = $1`;
+export const getUser = `SELECT id, name, password_hash FROM users WHERE name = $1`;
 
 
 export const checkUserExists = `SELECT 1 FROM users WHERE name = $1`;

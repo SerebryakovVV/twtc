@@ -4,6 +4,8 @@ import { RootState } from "../store"
 import { SlPaperClip } from "react-icons/sl";
 import { BiColor } from "react-icons/bi";
 import { useJwtFetch } from "../utils";
+import { IoMdClose } from "react-icons/io";
+
 
 export default function NewPost() {
 
@@ -35,19 +37,8 @@ export default function NewPost() {
 
     const createNewPost = async () => {
         const formattedText = text.replace(/\n{3,}/g, '\n\n');
-        let id: string | Blob;
-
-        // check later
-        // and rewrite, what the fuck even is this
-        // id = authorID || ""
-        // if (authorID) {
-        //     id = authorID;
-        // } else {
-        //     id = ""
-        // }
         const formData = new FormData();
         formData.append('text', formattedText);
-        // formData.append('authorID', id);
         filesState.forEach((image) => formData.append('images', image));
         try {
             const response = jwtFetch("http://localhost:3000/post", {
@@ -58,15 +49,30 @@ export default function NewPost() {
 			});
             console.log(response);
             setText("");
-            // check this later
             setFilesState([]);
             setImages([]);
+            window.location.reload();
         } catch(e) {
             console.log(e);
         }
     }
 
-    
+    const handleDelete = (index) => {
+        console.log(images);
+        setImages((i)=> {
+            const newState = [...i];
+            newState.splice(index, 1)
+            return newState
+        })
+
+        setFilesState((f)=> {
+            const newState = [...f];
+            newState.splice(index, 1)
+            return newState
+        })
+            
+        // setFilesState((f)=>f.splice(index-1, 1));
+    }
 
 
 //https://chatgpt.com/c/6734f4db-1190-8008-ab20-49056a595c48
@@ -95,9 +101,15 @@ export default function NewPost() {
             <input id="file-input" className="hidden" type="file" accept="image/png" multiple onChange={handleImageChange}/>
             <div className="mt-1">
                 <div className="flex">
-                    {images.map((i)=>{return(
-                        <div key={i} className="w-[100px] h-[100px] mr-4 border border-zinc-300">
-                           <img className="object-cover object-center w-full h-full" src={i}/>
+                    {images.map((i, index)=>{return(
+                        <div key={i} className="w-[100px] h-[100px] mr-4 border border-zinc-300 relative">
+                            <div 
+                                className="absolute right-0 top-0"
+                                onClick={()=>handleDelete(index)}    
+                            >
+                                    <IoMdClose size={25} />
+                            </div>
+                            <img className="object-cover object-center w-full h-full" src={i}/>
                         </div>
                     )})}
                 </div>

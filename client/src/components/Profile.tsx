@@ -7,11 +7,13 @@ import NewPost from "./NewPost"
 import FeedPost from './FeedPost.tsx'
 import { imgResToObjUrl } from "../utils.ts"
 import { useJwtFetch } from "../utils.ts"
+import { DiVim } from "react-icons/di"
+import PageStateMessage from "./PageStateMessage.tsx"
 
 // IF NO USER FOUND ADD HANDLING
 
 
-type profilePageError = "User doesn't exist" | "Something went wrong";
+type profilePageState = "User doesn't exist" | "Something went wrong" | "Loading" | "Done";
 
 
 export default function Profile() {
@@ -19,7 +21,6 @@ export default function Profile() {
     const reduxId = useSelector((state: RootState) => state.auth.id);
     const { queryUsername } = useParams();
     const [posts, setPosts] = useState<any[]>([])
-    const [error, setError] = useState<profilePageError | null>(null);
     const [pfp, setPfp] = useState<string | null>(null);
     const [userId, setUserId] = useState<number | null>(null)
     const [subCount, setSubCount] = useState<number | null>(null);
@@ -27,13 +28,16 @@ export default function Profile() {
     const [isFollowing, setIsFollowing] = useState<boolean>();
     
     ////
-    const [headerIsLoaded, setHeaderIsLoaded] = useState<boolean>(false);
     const [offset, setOffset] = useState(0); 
     const offsetRef = useRef(offset); 
     const postsAreLeftRef = useRef(true);
     const loadingRef = useRef(false);
     const initilPostsLoadedRef = useRef(false);
     const userIdRef = useRef(userId);
+
+
+    const [pageState, setPageState] = useState<profilePageState>("Loading")
+
 
     useEffect(()=>{
         offsetRef.current = offset;
@@ -99,18 +103,19 @@ export default function Profile() {
                 const queryResultJson = await queryResult.json();
                 console.log("user:", queryResultJson);
                 if (queryResultJson.length === 0) {
-                    setError("User doesn't exist");
+                    setPageState("User doesn't exist");
                 } else {
                     console.log(queryResultJson)
                     setUserId(queryResultJson[0].id);
                     setSubCount(queryResultJson[0].sub_count);
                     setPostCount(queryResultJson[0].post_count);
                     setPfp(queryResultJson[0].pf_pic && imgResToObjUrl(queryResultJson[0].pf_pic.data));
-                    setIsFollowing(queryResultJson[0].is_following)
+                    setIsFollowing(queryResultJson[0].is_following);
+                    setPageState("Done")
                 }
             } catch(e) {
                 console.log(e);
-                setError("Something went wrong");
+                setPageState("Something went wrong");
             }
         }
         setPosts([]);
@@ -124,34 +129,41 @@ export default function Profile() {
 
     
 
+    switch(pageState) {
+        case "Done":
+            return(
+                <div className="">
+                    <ProfileHeader 
+                        followedId={userId}
+                        isFollowing={isFollowing}
+                        pfp={pfp} 
+                        username={queryUsername} 
+                        subCount={Number(subCount)}
+                        postCount={postCount} 
+                    />
 
-  
-    return(
-        <div className="">
-            <ProfileHeader 
-                followedId={userId}
-                isFollowing={isFollowing}
-                pfp={pfp} 
-                username={queryUsername} 
-                subCount={Number(subCount)}
-                postCount={postCount} 
-            />
-
-            {reduxUsername === queryUsername ? <NewPost/> : null}
-        
-            {posts.map((p)=>{
-                return(<FeedPost 
-                    pfp={pfp}
-                    key={p.id}
-                    id={p.id}
-                    username={queryUsername as string}
-                    timestamp={p.created_at}
-                    text={p.content}
-                    images={p.images}
-                    likesNum={Number(p.likes_count)}
-                    commentsNum={Number(p.comments_count)}
-                    isLikedByUser={p.liked_by_user}
-            />)})}
-        </div>
-    );
+                    {reduxUsername === queryUsername ? <NewPost/> : null}
+                
+                    {posts.map((p)=>{
+                        return(<FeedPost 
+                            pfp={pfp}
+                            key={p.id}
+                            id={p.id}
+                            username={queryUsername as string}
+                            timestamp={p.created_at}
+                            text={p.content}
+                            images={p.images}
+                            likesNum={Number(p.likes_count)}
+                            commentsNum={Number(p.comments_count)}
+                            isLikedByUser={p.liked_by_user}
+                    />)})}
+                </div>
+            );
+        case "Loading":
+            return(<PageStateMessage message="Loading"/>);
+        case "User doesn't exist":
+            return(<PageStateMessage message="User doesn't exist"/>);
+        case "Something went wrong":
+            return(<PageStateMessage message="Something went wrong"/>)
+    }
 }

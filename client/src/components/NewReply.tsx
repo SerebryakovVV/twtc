@@ -45,6 +45,7 @@ export default function NewReply({toRoot, replyToName, postID, parentCommentID, 
             console.log('success');
             setReply("")
             if (hideReplyWhenSent) hideReplyWhenSent(false);
+            window.location.reload();
         } catch(e) {
             console.log(e);
         }
