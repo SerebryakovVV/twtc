@@ -2,27 +2,19 @@ import { useState, useEffect, useRef } from "react"
 import { useSelector } from "react-redux"
 import { RootState } from "../store"
 import { SlPaperClip } from "react-icons/sl";
-import { BiColor } from "react-icons/bi";
 import { useJwtFetch } from "../utils";
 import { IoMdClose } from "react-icons/io";
 
 
 export default function NewPost() {
-
     const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-
     const [text, setText] = useState<string>("");
     const [images, setImages] = useState<string[]>([]);
-
-    // const [height, setHeight] = useState<string>("100");
-
-    const authorID = useSelector((state: RootState) => state.auth.id);
-
     const [filesState, setFilesState] = useState<File[] | []>([]);
-
     const jwtFetch = useJwtFetch();
     const accessToken = useSelector((state: RootState) => state.auth.jwt);
     const accessTokenRef = useRef(accessToken);
+
     useEffect(()=>{
         accessTokenRef.current = accessToken;
     }, [accessToken])
@@ -33,7 +25,6 @@ export default function NewPost() {
             textAreaRef.current.style.height = textAreaRef.current.scrollHeight + "px";
         }
     }, [text])
-
 
     const createNewPost = async () => {
         const formattedText = text.replace(/\n{3,}/g, '\n\n');
@@ -58,24 +49,17 @@ export default function NewPost() {
     }
 
     const handleDelete = (index) => {
-        console.log(images);
         setImages((i)=> {
             const newState = [...i];
             newState.splice(index, 1)
             return newState
         })
-
         setFilesState((f)=> {
             const newState = [...f];
             newState.splice(index, 1)
             return newState
         })
-            
-        // setFilesState((f)=>f.splice(index-1, 1));
     }
-
-
-//https://chatgpt.com/c/6734f4db-1190-8008-ab20-49056a595c48
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         console.log(e.target.files);
@@ -113,14 +97,9 @@ export default function NewPost() {
                         </div>
                     )})}
                 </div>
-                
                 <label htmlFor="file-input" className="hover:cursor-pointer m-2"><SlPaperClip style={{color:"black", display:"inline"}} size={20} /></label>
                 <button onClick={createNewPost} className="ml-1 p-1 text-lg">Send</button>
-                
             </div>
-            
-            
-            
         </div> 
     )
 }

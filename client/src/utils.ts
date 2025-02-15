@@ -33,7 +33,7 @@ export const timestampTransform = (ts: string) => {
 export const useJwtFetch = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    return async (path:any, options:any) => {
+    return async (path: RequestInfo | URL, options: RequestInit) => {
         const response = await fetch(path, options);
         if (response.ok) return response;
         console.log(response.status)
@@ -49,9 +49,7 @@ export const useJwtFetch = () => {
                 console.log("refresh good");
                 const newAccessToken = await refreshResponse.text();
                 dispatch(setJwtRedux(newAccessToken));
-                ///////////////////////////////////////////////////////////
 			    localStorage.setItem("accessToken", newAccessToken);
-			    ///////////////////////////////////////////////////////////
                 return await fetch(path, {...options, headers:{...options.headers,"authorization":"Bearer " + newAccessToken}});
             } 
             console.log("navigate");

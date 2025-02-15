@@ -1,39 +1,38 @@
 import { useSelector } from "react-redux"
 import { RootState } from "../store"
 import { useEffect, useState } from "react";
-
 import { useJwtFetch } from "../utils";
 import { useRef } from "react";
 
+
 // type ProfileHeaderType = {
-//     isFollowing:boolean, pfp:string, username:string, subCount:number, postCount:number
+//     followedId:number, 
+//     isFollowing:boolean, 
+//     pfp:string, 
+//     username:string, 
+//     subCount:number, 
+//     postCount:number
 // }
 
-export default function ProfileHeader({followedId, isFollowing, pfp, username, subCount, postCount}) {
 
-    // need to delete probably
+export default function ProfileHeader({followedId, isFollowing, pfp, username, subCount, postCount}) {
     const authUsername = useSelector((state: RootState) => state.auth.username);
     const authID = useSelector((state: RootState) => state.auth.id);
-
     const [isFollowed, setIsFollowed] = useState<boolean>(isFollowing);
-    // const [isFollowed, setIsFollowed] = useState<boolean>();
     const [fCount, setFCount] = useState<number>(subCount)
-
     const jwtFetch = useJwtFetch();
-        const accessToken = useSelector((state: RootState) => state.auth.jwt);
-        const accessTokenRef = useRef(accessToken);
-        useEffect(()=>{
-            accessTokenRef.current = accessToken;
-        }, [accessToken])
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
 
-    // on mount now, when content changes doesn't mean it unmounts
     useEffect(()=>{
         setIsFollowed(isFollowing);
         setFCount(subCount);
     }, [username, isFollowing, subCount])
 
-// changed subcount to fCount
-
+    useEffect(()=>{
+            accessTokenRef.current = accessToken;
+    }, [accessToken])
+    
     const handleFollow = async () => {
         try {
             console.log(followedId, authID, isFollowed);
@@ -42,11 +41,7 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
                 headers: { "Content-Type": "application/json" }, 
                 body:JSON.stringify({followedId, authID, isFollowed})
             });
-            // i return plain text, no json
-            // const responseJson = await response.json();
-            // console.log(responseJson);
             if (response.ok) {
-                // setFCount(fCount + (isFollowed ? -1 : 1));
                 setFCount((fc)=>isFollowed ? fc - 1 : fc + 1);
                 setIsFollowed(!isFollowed);
             }
@@ -58,7 +53,6 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
     const handlePfpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!authID || !e.target.files) return;
         const formData = new FormData();
-        // formData.append('id', authID);
         formData.append('pfp', e.target.files[0])
         try {
             const response = jwtFetch("http://localhost:3000/pfp", {
@@ -67,8 +61,7 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
                 headers:{"authorization":"Bearer " + accessTokenRef.current},
 				body: formData
 			});
-            console.log(response);
-            // window.location.reload();
+            window.location.reload();
         } catch(e) {
             console.log(e);
         }
@@ -79,9 +72,6 @@ export default function ProfileHeader({followedId, isFollowing, pfp, username, s
             <div className="w-[100px] h-[100px] shrink-0 rounded-full overflow-hidden mr-2">
                 <img className="object-cover object-center w-full h-full" src={pfp ?? "/default_pfp.jpg"} alt="" />
             </div>
-            {/* <div className="w-[100px] h-[100px] overflow-hidden rounded-md">
-                <img className="w-full h-full object-cover" src={pfp ?? "/default_pfp.jpg"} alt="" />
-            </div> */}
             <div className="grow">
                 <div 
                 onClick={()=>{console.log(isFollowed, isFollowing)}}

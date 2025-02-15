@@ -1,19 +1,20 @@
-import express, {Request, Response, NextFunction} from "express"
-import bcrypt from 'bcrypt'
-import jwt, { JwtPayload } from 'jsonwebtoken';
-import cors from 'cors';
-import pg from 'pg';
-import { body, validationResult } from 'express-validator'
+import dotenv from 'dotenv';
+dotenv.config();
+import express, {Request, Response, NextFunction} from "express";
+import { validationResult } from 'express-validator';
+import { validateUsername, validatePassword, validateComment, validatePost } from "./validationChains";
+import { pool } from './db';
+import * as sqlStrings from "./sqlStrings";
+import bcrypt from 'bcrypt';
+import { generateAccessJwt, generateRefreshJwt } from './jwt';
+import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import multer from 'multer';
+import cors from 'cors';
 const cookieParser = require("cookie-parser");
-import * as sqlStrings from "./sqlStrings";
-import { validateUsername, validatePassword, validateComment, validatePost } from "./validationChains";
 
 
-
-const upload = multer({ dest: 'uploads/' });
-
+const upload = multer({dest: 'uploads/'});
 const app = express();
 app.use(
     cors({
@@ -26,42 +27,24 @@ app.use(express.json());
 app.use(cookieParser());
 
 
-const pool = new pg.Pool({
-    user: "my_user",
-    database: "twtc",
-    password: "root",
-    port: 5432,
-    host: "localhost"
-});
-
 interface RequestProtected extends Request {
 	id?: string,
 	username?: string
 }
 
 
-
-const JWT_ACCESS_SECRET = "accSec";
-const JWT_REFRESH_SECRET = "refSec";
-const generateAccessJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_ACCESS_SECRET, {expiresIn:"15m"});
-const generateRefreshJwt = (data: {username:string, id:string}) => jwt.sign(data, JWT_REFRESH_SECRET, {expiresIn:"15d"});
-
-
-
-
-
 app.get("/refresh", (req, res) => {
 	const refreshToken = req.cookies.refreshToken;
 	if (!refreshToken) {
-		res.status(401).send();
+		res.status(401).send("No refresh token");
 		return;
 	}
-	jwt.verify(refreshToken, JWT_REFRESH_SECRET, (e:any, d:any) => {
+	jwt.verify(refreshToken, String(process.env.JWT_REFRESH_SECRET), (e:any, d:any) => {
 		if (e) {
-			res.status(403).send();
+			res.status(403).send("Token refresh failed");
 			return;
 		} else {
-			const newAccessToken = generateAccessJwt({username:d.username, id:d.id}); // can be not correct object, error handling needed
+			const newAccessToken = generateAccessJwt({username:d.username, id:d.id});
 			res.status(200).send(newAccessToken);
 			return;
 		}
@@ -69,21 +52,18 @@ app.get("/refresh", (req, res) => {
 }) 
 
 
-// need to get the id and name from the token, otherwise everybody would be able to change any data with any token
-// vvv this will check the access on every request and either pass or block, triggering refresh request on the frontend
 const validateJwt = (req: RequestProtected, res: Response, next: NextFunction) => {
 	const authHeader = req.headers["authorization"];
 	if (!authHeader) {
-		res.status(401).send("no auth headers");
+		res.status(401).send("No auth headers");
 		return;
 	}
 	const accessToken =  Array.isArray(authHeader) 
 						? authHeader[0].split(" ")[1] 
 						: authHeader.split(" ")[1];
-	jwt.verify(accessToken, JWT_ACCESS_SECRET, (err:any, data:any) => {
+	jwt.verify(accessToken, String(process.env.JWT_ACCESS_SECRET), (err:any, data:any) => {
 		if (err) {  
-			// if (err.name === "TokenExpiredError") // check if error is expired tho
-			res.status(403).send();
+			res.status(403).send("Access denied");
 			return;
 		} else {
 			req.id = data.id;
@@ -94,7 +74,7 @@ const validateJwt = (req: RequestProtected, res: Response, next: NextFunction) =
 }
 
 
-// https://chatgpt.com/c/6713eb44-3b00-8008-8933-5231d3533978       validation logic reusability
+
 app.post(
 	"/login", 
     validateUsername(), 
@@ -132,7 +112,7 @@ app.post(
 				username: userRequesResult.rows[0].name,
 				id: userRequesResult.rows[0].id
 			})
-			res.cookie("refreshToken", refreshToken, {"httpOnly":true}); // set expiration date
+			res.cookie("refreshToken", refreshToken, {"httpOnly":true, maxAge:1000*60*60*24*30});
 			res.status(200).send({
                 accessToken,
                 username,
@@ -188,7 +168,6 @@ app.post(
 )
 
 
-
 app.post(
 	"/post", 
 	validateJwt, 
@@ -239,7 +218,6 @@ app.post(
 		}   
 	}
 )
-
 
 
 app.get(
@@ -345,8 +323,6 @@ app.get(
 )
 
 
-
-
 app.post(
 	"/pfp", 
 	validateJwt, 
@@ -375,7 +351,6 @@ app.post(
 		}
 	}
 )
-
 
 
 app.post(

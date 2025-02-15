@@ -1,7 +1,6 @@
 import { body } from 'express-validator'
 
 
-
 export const validateUsername = () => 
     body("username")
         .isString()
@@ -27,6 +26,7 @@ export const validateComment = () =>
         .isLength({min:1, max:1000})
         .withMessage("Comment is too short or too long");
 
+        
 export const validatePost = () => 
     body("text")
         .isString()

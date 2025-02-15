@@ -3,8 +3,8 @@ import { imgResToObjUrl } from "../utils";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import FeedPost from "./FeedPost";
-
 import { useJwtFetch } from "../utils";
+
 
 export default function Feed() {
     const [posts, setPosts] = useState<any[]>([]);
@@ -13,45 +13,38 @@ export default function Feed() {
     const postsAreLeftRef = useRef(true);
     const loadingRef = useRef(false);
     const initilPostsLoadedRef = useRef(false);
-    const userId = useSelector((state: RootState) => state.auth.id);
     const accessToken = useSelector((state: RootState) => state.auth.jwt);
-
+    const accessTokenRef = useRef(accessToken);
     const jwtFetch = useJwtFetch();
 
     useEffect(()=>{
         offsetRef.current = offset;
     }, [offset])
 
-
-    /////////////////
-
-    const accessTokenRef = useRef(accessToken);
-
     useEffect(()=>{
         accessTokenRef.current = accessToken;
     }, [accessToken])
 
-
-    ////////////////
-
-
+    useEffect(()=>{
+        document.addEventListener("scroll", scrollHandler);
+        if (!initilPostsLoadedRef.current) {
+            getNextPosts();
+            initilPostsLoadedRef.current = true;
+        }
+        return () => document.removeEventListener("scroll", scrollHandler);
+    }, [])
 
     const getNextPosts = async () => {
         try {
             loadingRef.current = true;
-            // console.log("accessToken:", accessToken);
-            
-            // PROTECTED ROUTES?
             const response = await jwtFetch(
-                "http://localhost:3000/subscriptions_posts?offset=" + offsetRef.current,  // removed the id
+                "http://localhost:3000/subscriptions_posts?offset=" + offsetRef.current,
                 {credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}}
             );
-
             if (!response.ok) throw new Error("failed");
             const responseJson = await response.json();
             if (responseJson.length == 0) postsAreLeftRef.current = false;
             setPosts((p)=>[...p, ...responseJson]);
-            console.log(responseJson);
             setOffset((o)=>o+10)
         } catch(e) {
             console.log(e);
@@ -67,15 +60,7 @@ export default function Feed() {
         }
     }
 
-    useEffect(()=>{
-        document.addEventListener("scroll", scrollHandler);
-        if (!initilPostsLoadedRef.current) {
-            getNextPosts();
-            initilPostsLoadedRef.current = true;
-        }
-        return () => document.removeEventListener("scroll", scrollHandler);
-    }, [])
-
+    
     return(
         <div className="">
             {posts.map((p)=>{

@@ -29,7 +29,6 @@ export default function Login() {
 			setRepeatPassword(/^[a-zA-Z0-9!@#$%&*]{0,20}$/.test(value) ? value : repeatPassword);
 	}
 
-
 	const validateFields = (): void => {
 		setUsernameError("");
 		setPasswordError("");
@@ -51,12 +50,8 @@ export default function Login() {
 		registerUser();
 	}
 
-
 	const registerUser = async (): Promise<void> => {
 		try {
-			console.log("start");
-			
-			
 			const response = await fetch("http://localhost:3000/register", {
 				method:"POST",
 				headers: {
@@ -67,51 +62,18 @@ export default function Login() {
 					password
 				})
 			});
-
-
-
-			// DELETE THIS BLOCK, UNCOMMENT THE BLOCK ABOVE
-
-			// const response = await fetch("http://localhost:3000/register", {
-			// 	method:"POST",
-			// 	headers: {
-			// 		'Content-Type': 'application/json'
-			// 	},
-			// 	body: JSON.stringify({
-			// 		username:"hello!",
-			// 		password:"djkfldf"
-			// 	})
-			// });
-
-			//
-
-
-
-			if (!response.ok) {                 // response ok is true for 200-299 codes, implement all the error handling here
-				
-				const responseJSON = await response.text();  // only works with validation errors
-				// console.log("validation error");
+			if (!response.ok) {                
+				const responseJSON = await response.text();  
 				console.log(responseJSON);
 				throw Error("Fetch error");  
 			}
-			
 			console.log("passed the auth");
 			const responseJSON = await response.json();
 			console.log(responseJSON);
 		} catch (err) {
 			console.log("its so over ", err);
 		}
-
-
-
 	}
-
-// const data = await response.json(); // Parse the response as JSON
-// console.log(data); // Use the fetched data
-
-
-
-
 
   	return (
 		<div className="w-screen h-screen bg-zinc-100 flex justify-center items-center">

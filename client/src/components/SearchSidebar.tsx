@@ -2,16 +2,14 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom";
 import { IoIosSearch } from "react-icons/io";
 
+
 export default function SearchSidebar() {
-
     const [searchString, setSearchString] = useState<string>("")
-
     const navigate = useNavigate();
 
     const handleSearch = () => {
         if (searchString.length === 0) return;
         navigate("/profile/"+searchString);
-        console.log(searchString);
         setSearchString("");
     }
 

@@ -7,10 +7,7 @@ import NewPost from "./NewPost"
 import FeedPost from './FeedPost.tsx'
 import { imgResToObjUrl } from "../utils.ts"
 import { useJwtFetch } from "../utils.ts"
-import { DiVim } from "react-icons/di"
 import PageStateMessage from "./PageStateMessage.tsx"
-
-// IF NO USER FOUND ADD HANDLING
 
 
 type profilePageState = "User doesn't exist" | "Something went wrong" | "Loading" | "Done";
@@ -26,18 +23,16 @@ export default function Profile() {
     const [subCount, setSubCount] = useState<number | null>(null);
     const [postCount, setPostCount] = useState<number | null>(null);
     const [isFollowing, setIsFollowing] = useState<boolean>();
-    
-    ////
     const [offset, setOffset] = useState(0); 
     const offsetRef = useRef(offset); 
     const postsAreLeftRef = useRef(true);
     const loadingRef = useRef(false);
     const initilPostsLoadedRef = useRef(false);
     const userIdRef = useRef(userId);
-
-
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
     const [pageState, setPageState] = useState<profilePageState>("Loading")
-
 
     useEffect(()=>{
         offsetRef.current = offset;
@@ -47,41 +42,10 @@ export default function Profile() {
         userIdRef.current = userId;
     }, [userId])
 
-
-    const jwtFetch = useJwtFetch();
-    const accessToken = useSelector((state: RootState) => state.auth.jwt);
-    const accessTokenRef = useRef(accessToken);
     useEffect(()=>{
         accessTokenRef.current = accessToken;
     }, [accessToken])
-
-    const getNextPosts = async () => {
-        try {
-            loadingRef.current = true;
-            console.log(userIdRef.current, reduxId, offsetRef.current);
-            const queryResult = await fetch("http://localhost:3000/user_posts?id=" + userIdRef.current + "&offset=" + offsetRef.current, {
-                credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}
-            });
-            if (!queryResult.ok) throw new Error("Error fetching the posts");
-            const queryResultJson = await queryResult.json();
-            if (queryResultJson.length == 0) postsAreLeftRef.current = false;
-            setPosts((p)=>[...p, ...queryResultJson]);
-            setOffset((o)=>o+10)
-            console.log(queryResultJson);
-        } catch(e) {
-            console.log(e);
-        } finally {
-            loadingRef.current = false;
-        }
-    }
-
-    const scrollHandler = () => {
-        const {scrollTop, clientHeight, scrollHeight} = document.documentElement;
-        if (scrollTop + clientHeight > scrollHeight - 50 && postsAreLeftRef.current && !loadingRef.current) {
-            getNextPosts();
-        }
-    }
-
+    
     useEffect(()=>{
         if (!userId) return;
         document.addEventListener("scroll", scrollHandler);
@@ -91,7 +55,6 @@ export default function Profile() {
         }
         return () => document.removeEventListener("scroll", scrollHandler);
     }, [userId])
-
 
     useEffect(()=>{
         const getUser = async () => {
@@ -125,9 +88,32 @@ export default function Profile() {
         getUser();
     }, [queryUsername])
 
+    const getNextPosts = async () => {
+        try {
+            loadingRef.current = true;
+            console.log(userIdRef.current, reduxId, offsetRef.current);
+            const queryResult = await fetch("http://localhost:3000/user_posts?id=" + userIdRef.current + "&offset=" + offsetRef.current, {
+                credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}
+            });
+            if (!queryResult.ok) throw new Error("Error fetching the posts");
+            const queryResultJson = await queryResult.json();
+            if (queryResultJson.length == 0) postsAreLeftRef.current = false;
+            setPosts((p)=>[...p, ...queryResultJson]);
+            setOffset((o)=>o+10)
+            console.log(queryResultJson);
+        } catch(e) {
+            console.log(e);
+        } finally {
+            loadingRef.current = false;
+        }
+    }
 
-
-    
+    const scrollHandler = () => {
+        const {scrollTop, clientHeight, scrollHeight} = document.documentElement;
+        if (scrollTop + clientHeight > scrollHeight - 50 && postsAreLeftRef.current && !loadingRef.current) {
+            getNextPosts();
+        }
+    }
 
     switch(pageState) {
         case "Done":
@@ -141,9 +127,7 @@ export default function Profile() {
                         subCount={Number(subCount)}
                         postCount={postCount} 
                     />
-
                     {reduxUsername === queryUsername ? <NewPost/> : null}
-                
                     {posts.map((p)=>{
                         return(<FeedPost 
                             pfp={pfp}

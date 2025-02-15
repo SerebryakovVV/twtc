@@ -1,22 +1,16 @@
 import { imgResToObjUrl } from "../utils.ts"
-
 import { createPortal } from "react-dom";
 import { useState, useEffect } from "react";
-
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 
 
 export default function PostImages({images}:{images:any[]}) {
     const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-    const [imgNum, setImgNum] = useState<number>(images.length);
     const [currentImg, setCurrentImg] = useState<number>(0);
     const [imagesTransformed, setImagesTransformed] = useState<any[]>([]);
 
     useEffect(()=>{
-        console.log(images);
-        
         const cleanUpReference = images.map((i)=>({image_id:i.image_id, image:imgResToObjUrl(i.image)}));
-        console.log(cleanUpReference);
         setImagesTransformed(cleanUpReference);
         return () => cleanUpReference.forEach((i)=>URL.revokeObjectURL(i.image))
     }, [images])

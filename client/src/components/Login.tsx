@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Link } from "react-router-dom";
 
+
 type validationErrorType = "Password too short" | "Username field is empty";
 type AuthErrorType = "User not found" | "Wrong password" | "Server error";
 
@@ -60,11 +61,9 @@ export default function Login() {
 			dispatch(setUsernameRedux(resultJSON.username));
 			dispatch(setIdRedux(resultJSON.id));
 			dispatch(setJwtRedux(resultJSON.accessToken));
-			///////////////////////////////////////////////////////////
 			localStorage.setItem("accessToken", resultJSON.accessToken);
 			localStorage.setItem("id", resultJSON.id);
 			localStorage.setItem("username", resultJSON.username);
-			///////////////////////////////////////////////////////////
 			navigate("/");
 		} catch (err) {
 			console.log("its so over ", err);

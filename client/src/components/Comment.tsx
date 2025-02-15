@@ -3,59 +3,38 @@ import NewReply from "./NewReply";
 import { IoIosHeart, IoIosHeartEmpty } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
 import { FaReply } from "react-icons/fa";
-// import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
-import { DiVim } from "react-icons/di";
 import { timestampTransform } from "../utils";
-import { useParams } from "react-router-dom";
 import { imgResToObjUrl } from "../utils";
-
 import { useJwtFetch } from "../utils";
 
-// change the name of the "notRoot"  so it would make sense
 
 export default function Comment({postId, id, root, username, timestamp, text, isLiked, replyCount, likesNum, parentCommentIdToPass, pfp}:{pfp:any, parentCommentIdToPass:number,likesNum:number, replyCount:number, postId:string | undefined, id:number, root:boolean, username:string, timestamp:string, text:string, isLiked:boolean}) {
     const [isReplyActive, setIsReplyActive] = useState<boolean>(false);
     const [isLikedState, setIsLikedState] = useState<boolean>(isLiked);
-
     const [isLikeLoading, setIsLikeLoading] = useState<boolean>(false);
-
     const [showReplies, setShowReplies] = useState<boolean>(false);
     const [likesCount, setLikesCount] = useState<number>(Number(likesNum));
-
-    const userId = useSelector((state: RootState) => state.auth.id);
-
     const [commentReplies, setCommentReplies] = useState<any[]>([]);
-
-
+    const navigate = useNavigate();
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
     
-
-
     useEffect(()=>{
         setIsLikedState(isLiked);
         console.log(isLiked);
     }, [isLiked])
 
-    const navigate = useNavigate();
-
-    const [replies, setReplies] = useState([]);
-
-    const jwtFetch = useJwtFetch();
-    const accessToken = useSelector((state: RootState) => state.auth.jwt);
-    const accessTokenRef = useRef(accessToken);
     useEffect(()=>{
         accessTokenRef.current = accessToken;
     }, [accessToken])
 
-
     const handleLike = async () => {
-        // setIsLikedState(!isLikedState);
         if (!isLikeLoading) {
             setIsLikeLoading(true);
-            console.log("one");
-            console.log(id, userId);
             const response = await jwtFetch("http://localhost:3000/like_comment", {
                 method: isLikedState ? "DELETE" : "POST",
                 credentials:"include",
@@ -64,14 +43,11 @@ export default function Comment({postId, id, root, username, timestamp, text, is
                     id
                 })
             });
-            console.log("two");
             if (response.ok) {
                 setIsLikedState(!isLikedState);
-                console.log(isLikedState)
                 setLikesCount((l)=>isLikedState ? l - 1 : l + 1);
             }
             setIsLikeLoading(false);
-            console.log("three");
         }
     }
 
@@ -79,13 +55,12 @@ export default function Comment({postId, id, root, username, timestamp, text, is
     const loadCommentReplies = async () => {
         setShowReplies(true);
         try {
-            console.log(id, userId)
             const response = await jwtFetch("http://localhost:3000/comment_replies?comment_id=" + id, {
                 credentials:"include",
                 headers:{"authorization":"Bearer " + accessTokenRef.current}
             });
+            if (response.ok) throw new Error("error loading replies");
             const responseJson = await response.json();
-            console.log(responseJson);
             setCommentReplies(responseJson);
         } catch(e) {
             console.log(e);
@@ -95,7 +70,6 @@ export default function Comment({postId, id, root, username, timestamp, text, is
 
 
     return(
-        // <div className={`${notRoot ? "pl-[50px]" : "pl-2" } pr-2 pt-2 border-b border-zinc-300`}>
         <div className={`${!root && "pl-[30px] "} pt-2 border-b border-zinc-300`}>
             <div className="flex mx-2">
                 <div className="w-[40px] h-[40px] shrink-0 rounded-full overflow-hidden mr-2 cursor-pointer" onClick={()=>navigate("/profile/" + username)}>
@@ -113,7 +87,6 @@ export default function Comment({postId, id, root, username, timestamp, text, is
             <div className="px-2 py-1">
                 {text}
             </div>
-            {/* <div className={`${showReplies && " border-b border-zinc-300 "} pl-2 flex`}> */}
             <div className={`${showReplies && !isReplyActive ? " border-b border-zinc-300 " : ""} pl-2 flex`}>
                 <span className="pt-[2px]" onClick={handleLike}>{isLikedState ? <IoIosHeart /> : <IoIosHeartEmpty />}</span>
                 <span className="text-sm mr-1">{likesCount}</span>
@@ -134,7 +107,7 @@ export default function Comment({postId, id, root, username, timestamp, text, is
             }
             {commentReplies.map((c)=>{
                 return(<Comment 
-                    pfp={c.pf_pic && imgResToObjUrl(c.pf_pic.data)}
+                            pfp={c.pf_pic && imgResToObjUrl(c.pf_pic.data)}
                             parentCommentIdToPass={parentCommentIdToPass}
                             key={c.id} 
                             postId={postId}

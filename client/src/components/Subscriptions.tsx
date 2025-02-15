@@ -1,23 +1,17 @@
-import { useState, useEffect, ReactNode, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { imgResToObjUrl } from "../utils";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
-import FeedPost from "./FeedPost";
 import { useJwtFetch } from "../utils";
 
 import { useNavigate } from "react-router-dom";
 
 export default function Subscriptions() {
     const [subs, setSubs] = useState<any[]>([]);
-    
-
-    const userId = useSelector((state: RootState) => state.auth.id);
-
     const jwtFetch = useJwtFetch();
     const accessToken = useSelector((state: RootState) => state.auth.jwt);
 
     useEffect(()=>{
-
         const getSubs = async () => {
             try {
                 const response = await jwtFetch("http://localhost:3000/subscriptions", {
@@ -31,22 +25,16 @@ export default function Subscriptions() {
                 console.log(responseJson);
             } catch(e) {
                 console.log(e);
-                // handle the error
             }
         }
-
         getSubs();
     }, [accessToken])
 
 
-    
-    
-    
     return(
         <div className="">
             {subs.map((p)=>{
                 return(
-                    // <div>{p.name}</div>
                     <SubscriptionCard key={p.id} name={p.name} id={p.id} pfp={p.pf_pic && imgResToObjUrl(p.pf_pic.data)}/>
                 )
             })}
@@ -57,20 +45,16 @@ export default function Subscriptions() {
 
 
 function SubscriptionCard({name, id, pfp}) {
-    // where is isLoading state
     const [isFollowed, setIsFollowed] = useState(true);
     const navigate = useNavigate();
     const jwtFetch = useJwtFetch()
-    
     const [isLoading, setIsLoading] = useState(false);
-    
-    // const authID = useSelector((state: RootState) => state.auth.id);
     const accessToken = useSelector((state: RootState) => state.auth.jwt);
     const accessTokenRef = useRef(accessToken);
     
-        useEffect(()=>{
-            accessTokenRef.current = accessToken;
-        }, [accessToken])
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
 
     const handleFollow = async () => {
         if (isLoading) return;

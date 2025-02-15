@@ -1,38 +1,28 @@
 import { useSelector } from "react-redux"
 import { RootState } from "../store"
 import { useState, useRef, useEffect } from "react";
-
-
 import { useJwtFetch } from "../utils";
 
-// need to check if parentcommentid is null to differentiate between roots and others
-
-// change any to function
 
 export default function NewReply({toRoot, replyToName, postID, parentCommentID, hideReplyWhenSent}:{toRoot:boolean, replyToName:string | null, hideReplyWhenSent:any, postID:number | string | undefined, parentCommentID:number | null}) {
     const [reply, setReply] = useState<string>(replyToName ? "@" + replyToName + ", " : "");
-    const authorID = useSelector((state: RootState) => state.auth.id);
     const replyRef = useRef<HTMLTextAreaElement | null>(null);
-
+    const jwtFetch = useJwtFetch();
+    const accessToken = useSelector((state: RootState) => state.auth.jwt);
+    const accessTokenRef = useRef(accessToken);
+    
     useEffect(() => {
         if (replyRef.current) {
             replyRef.current.style.height = "auto";
             replyRef.current.style.height = replyRef.current.scrollHeight + "px";
         }
     }, [reply])
-
-   
-
-     const jwtFetch = useJwtFetch();
-            const accessToken = useSelector((state: RootState) => state.auth.jwt);
-            const accessTokenRef = useRef(accessToken);
-            useEffect(()=>{
-                accessTokenRef.current = accessToken;
-            }, [accessToken])
+        
+    useEffect(()=>{
+        accessTokenRef.current = accessToken;
+    }, [accessToken])
 
     const handleReplySend = async () => {
-        console.log(postID, parentCommentID, reply, authorID);
-
         try {
             const response = await jwtFetch("http://localhost:3000/comment", {
                 method: "POST",
@@ -42,7 +32,6 @@ export default function NewReply({toRoot, replyToName, postID, parentCommentID, 
                 },
                 body: JSON.stringify({postID, parentCommentID, reply})
             });
-            console.log('success');
             setReply("")
             if (hideReplyWhenSent) hideReplyWhenSent(false);
             window.location.reload();
