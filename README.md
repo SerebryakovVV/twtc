@@ -5,6 +5,8 @@ Stack:
 - Typescript
 - Express
 - Postgress
+
+
 Has jwt authentication. User can make posts with photos, like other posts, subscribe to other users, comment.
 
 ![Screenshot 2025-02-19 053715](https://github.com/user-attachments/assets/7024ada0-90fd-4124-a4ab-2fc05ff94b0e)
