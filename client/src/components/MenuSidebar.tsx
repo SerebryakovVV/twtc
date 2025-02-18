@@ -7,7 +7,7 @@ export default function MenuSidebar() {
     const username = useSelector((state: RootState) => state.auth.username);
     return (
         <div className="w-[150px] bg-zinc-100 border-r border-zinc-300 fixed min-h-screen left-1/2 -translate-x-[425px]">
-            <div className="text-3xl mb-8">TWTX</div>
+            <div className="text-3xl mb-8">TWTC</div>
             <ul className="mr-2">
                 <li><Link to="/"><MenuSidebarElement text="Feed"/></Link></li>
                 <li><Link to={`profile/${username}`}><MenuSidebarElement text="Profile"/></Link></li>

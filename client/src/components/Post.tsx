@@ -100,7 +100,8 @@ export default function Post() {
             const response = await jwtFetch("http://localhost:3000/root_comments?post_id=" + id + "&offset=" + offsetRef.current,
                 {credentials:"include", headers:{"authorization":"Bearer " + accessTokenRef.current}}
             );
-            if (response.ok) throw new Error();
+            console.log(response);
+            if (!response.ok) throw new Error();
             const responseJson = await response.json();
             if (responseJson.length == 0) commentsAreLeftRef.current = false;
             setComments((c)=>[...c, ...responseJson]);

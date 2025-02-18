@@ -59,7 +59,7 @@ export default function Comment({postId, id, root, username, timestamp, text, is
                 credentials:"include",
                 headers:{"authorization":"Bearer " + accessTokenRef.current}
             });
-            if (response.ok) throw new Error("error loading replies");
+            if (!response.ok) throw new Error("error loading replies");
             const responseJson = await response.json();
             setCommentReplies(responseJson);
         } catch(e) {

@@ -10,7 +10,7 @@ export default function Layout() {
 			<div className="bg-zinc-100 w-[850px] flex justify-between">
 				<MenuSidebar/>
 				<div className="w-[500px] relative left-[150px]">
-					<PageHeader text="page header"/>
+					{/* <PageHeader text="page header"/> */}
                 	<Outlet/>
 				</div>
 				<SearchSidebar/>
